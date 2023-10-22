@@ -206,6 +206,11 @@ bool ProcessCmdLine(LPSTR lpCmdLine)
 					else
 						LogFileOutput("VidHD currently only supported in slot 3\n");
 				}
+				if (strcmp(lpCmdLine, "spoverslip") == 0)
+				{
+					g_cmdLine.slotInsert[slot] = CT_SmartPortOverSlip;
+				}
+				
 			}
 			else if (lpCmdLine[3] == 'd' && (lpCmdLine[4] == '1' || lpCmdLine[4] == '2'))	// -s[1..7]d[1|2] <dsk-image>
 			{

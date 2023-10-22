@@ -337,6 +337,7 @@ IDR_MOCKINGBOARD_D_FW   FIRMWARE                "Mockingboard-D.rom"
 IDR_MOUSEINTERFACE_FW   FIRMWARE                "MouseInterface.rom"
 IDR_THUNDERCLOCKPLUS_FW FIRMWARE                "ThunderClockPlus.rom"
 IDR_TKCLOCK_FW          FIRMWARE                "TKClock.rom"
+IDR_SPOVERSLIP_FW       FIRMWARE                "spoverslip.bin"
 
 /////////////////////////////////////////////////////////////////////////////
 //
