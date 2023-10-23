@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StrFormat.h"
 #include "Memory.h"
 #include "Log.h"
+#include "../resource/resource.h"
 
 #include <iostream>
 #include <urlmon.h>
@@ -57,7 +58,7 @@ FujiNet::~FujiNet()
 
 void FujiNet::resetBuffer()
 {
-	memset(buffer, 0, W5100_MEM_SIZE);
+	memset(buffer, 0, 1024);
 	bufferLen = 0;
 	bufferReadIndex = 0;
 }
@@ -73,52 +74,69 @@ void FujiNet::Reset(const bool powerCycle)
 	}
 }
 
-BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCycles)
+void FujiNet::process()
 {
-	LogFileOutput("FUJINET IOWrite: PC: %02x, address: %02x, value: %d\n", programcounter, address, value);
-	BYTE res = 1;
+	LogFileOutput("FUJINET processing %d bytes\n", bufferLen);
+	uint8_t command = buffer[0];
 
-	return res;
 }
 
-BYTE FujiNet::IORead0(WORD programcounter, WORD address, ULONG nCycles)
+BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCycles)
 {
-	LogFileOutput("FUJINET IORead: PC: %02x, address: %02x\n", programcounter, address);
+	LogFileOutput("FUJINET IOWrite0: PC: %02x, address: %02x, value: %d\n", programcounter, address, value);
+	const uint8_t loc = address & 0x0f;
+
+	// Location:
+	// 0 = clear buffer and reset index
+	// 1 = write data to buffer
+	// 2 = process buffer
+
+	switch (loc) {
+	case 0:
+		resetBuffer();
+		break;
+	case 1:
+		buffer[bufferLen++] = value;
+		break;
+	case 2:
+		process();
+		break;
+	}
 
 	return 0;
 }
 
-BYTE FujiNet::IOWriteX(WORD programcounter, WORD address, BYTE value, ULONG nCycles)
+BYTE FujiNet::IORead0(WORD programcounter, WORD address, ULONG nCycles)
 {
-	BYTE res = 1;
-	LogFileOutput("FUJINET IOWrite: PC: %02x, address: %02x, value: %d\n", programcounter, address, value);
+	LogFileOutput("FUJINET IORead0: PC: %02x, address: %02x\n", programcounter, address);
+	const uint8_t loc = address & 0x0f;
+	BYTE res = 0;
 
-	return res;
-}
+	// Location:
+	// 0 = lo byte of bufferLen
+	// 1 = hi byte of bufferLen
+	// 2 = next byte
 
-BYTE FujiNet::IOReadX(WORD programcounter, WORD address, ULONG nCycles)
-{
-	LogFileOutput("FUJINET IORead: PC: %02x, address: %02x\n", programcounter, address);
-
-	BYTE lo = address & 0xff;
-	switch (lo) {
-	case 1: return 0x20;
+	switch (loc) {
+	case 0:
+		res = (BYTE)(bufferLen & 0x00ff);
 		break;
-	case 3: return 0x00;
+	case 1:
+		res = (BYTE)((bufferLen >> 8) && 0xff);
 		break;
-	case 5: return 0x03;
-		break;
-	case 7: return 0x3C; // or $00 for SP?
+	case 2:
+		if (bufferReadIndex < bufferLen) {
+			res = buffer[bufferReadIndex++];
+		}
 		break;
 	}
 
-	return 0x69;
+	return res;
 }
 
 BYTE __stdcall c0Handler(WORD programcounter, WORD address, BYTE write, BYTE value, ULONG nCycles)
 {
 	UINT uSlot = ((address & 0xf0) >> 4) - 8;
-	LogFileOutput("FUJINET c0Handler PC: %02x, address: %02x, write: %u, value: %u, cycles: %lu, slot: %u\n", programcounter, address, write, value, nCycles, uSlot);
 
 	if (uSlot < 8) {
 		FujiNet* pCard = (FujiNet*)MemGetSlotParameters(uSlot);
@@ -132,28 +150,20 @@ BYTE __stdcall c0Handler(WORD programcounter, WORD address, BYTE write, BYTE val
 	return 0;
 }
 
-BYTE __stdcall cXHandler(WORD programcounter, WORD address, BYTE write, BYTE value, ULONG nCycles)
-{
-	UINT uSlot = (address >> 8) & 0x0f;
-	LogFileOutput("FUJINET cXHandler PC: %02x, address: %02x, write: %u, value: %u, cycles: %lu, slot: %u\n", programcounter, address, write, value, nCycles, uSlot);
-
-	if (uSlot < 8) {
-		FujiNet* pCard = (FujiNet*)MemGetSlotParameters(uSlot);
-		if (write) {
-			return pCard->IOWriteX(programcounter, address, value, nCycles);
-		}
-		else {
-			return pCard->IOReadX(programcounter, address, nCycles);
-		}
-	}
-	return 0;
-}
-
 void FujiNet::InitializeIO(LPBYTE pCxRomPeripheral)
 {
 	LogFileOutput("FUJINET InitialiseIO\n");
-	RegisterIoHandler(m_slot, c0Handler, c0Handler, cXHandler, cXHandler, this, nullptr);
 
+	const DWORD HARDDISK_FW_SIZE = APPLE_SLOT_SIZE;
+
+	// Install firmware into chosen slot
+	BYTE* pData = GetFrame().GetResource(IDR_FUJINET_FW, "FIRMWARE", HARDDISK_FW_SIZE);
+	if (pData == NULL)
+		return;
+
+	memcpy(pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE, pData, HARDDISK_FW_SIZE);
+
+	RegisterIoHandler(m_slot, c0Handler, c0Handler, nullptr, nullptr, this, nullptr);
 }
 
 

@@ -259,7 +259,6 @@ INT_PTR CPageConfig::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPA
 				switch (cardInSlot3) {
 				case CT_Uthernet:
 				case CT_Uthernet2:
-				case CT_FujiNet:
 					m_PageConfigTfe.m_tfe_selected = cardInSlot3;
 					break;
 				default:
@@ -397,7 +396,7 @@ void CPageConfig::DlgOK(HWND hWnd)
 void CPageConfig::InitOptions(HWND hWnd)
 {
 	const SS_CARDTYPE slot3 = m_PropertySheetHelper.GetConfigNew().m_Slot[SLOT3];
-	const BOOL enableUthernetDialog = slot3 == CT_Empty || slot3 == CT_Uthernet || slot3 == CT_Uthernet2 || slot3 == CT_FujiNet;
+	const BOOL enableUthernetDialog = slot3 == CT_Empty || slot3 == CT_Uthernet || slot3 == CT_Uthernet2;
 	EnableWindow(GetDlgItem(hWnd, IDC_ETHERNET), enableUthernetDialog);
 
 	const bool bIsSlot3VidHD = slot3 == CT_VidHD;

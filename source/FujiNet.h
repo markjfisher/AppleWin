@@ -30,13 +30,12 @@ public:
 
     BYTE IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCycles);
     BYTE IORead0(WORD programcounter, WORD address, ULONG nCycles);
-    BYTE IOWriteX(WORD programcounter, WORD address, BYTE value, ULONG nCycles);
-    BYTE IOReadX(WORD programcounter, WORD address, ULONG nCycles);
+    void process();
 
 private:
     void resetBuffer();
 
-    BYTE buffer[W5100_MEM_SIZE];
+    BYTE buffer[1024];
     unsigned long bufferLen;
     int bufferReadIndex;
 };
