@@ -30,7 +30,9 @@ public:
 
     BYTE IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCycles);
     BYTE IORead0(WORD programcounter, WORD address, ULONG nCycles);
-    void process();
+    void process(void);
+    void device_count(void);
+    void dib(uint8_t dest);
 
 private:
     void resetBuffer();

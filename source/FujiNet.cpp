@@ -74,10 +74,72 @@ void FujiNet::Reset(const bool powerCycle)
 	}
 }
 
+void FujiNet::device_count()
+{
+	// write "6" back to the A2 when it asks for a value.
+	LogFileOutput("FUJINET device count, len: 1, buff: 6\n");
+	bufferLen = 1;
+	buffer[0] = 6;
+}
+
+void FujiNet::dib(uint8_t dest)
+{
+	LogFileOutput("FUJINET dib, len: 7, buff: NETWORK@5\n");
+	bufferLen = 7+5; // payload seems to be sent back to payload+5, but we copy initial 5 bytes back too.
+	strcpy((char *) buffer+5, "NETWORK");
+	buffer[4] = 7; // not sure this is used, not in network_library anyway.
+}
+
 void FujiNet::process()
 {
 	LogFileOutput("FUJINET processing %d bytes\n", bufferLen);
+
+	// Buffer has following data:
+	// 00 : command
+	// 01 : command parameter count
+	// 02 : destination
+	// 03 : payload lo
+	// 04 : payload hi
+	// 05 : param 1
+	// 06 : param 2
+	// 07+: payload data if required
+
+	// Payload data contains:
+	
+	// CONTROL COMMAND
+	// 00 : Length (lo)
+	// 01 : Length (hi)
+	// 02 : Mode (e.g. R/W = $0C)
+	// 03 : Translation (0 = None, etc)
+	// 04 .. 04 + (Len - 2) = nul terminated Device Spec
+
+	// OPEN/CLOSE
+	// N/A
+
+	// READ/WRITE
+	// DATA for Write, or to be sent back for Read.
+	// The length is in Buffer[5,6]
+
+	// STATUS
+	// Length -> Payload[0,1]
+
+	// To start, get enough working fake without calling actual FN.
+	// STATUS 0, DEST  = 0                          -> do device count
+	// STATUS 0, DEST != 0, PARAM1 = statuscode = 3 -> DIB, use DEST to fetch the device name
+	// othewise normal STATUS
+
+	// everything else is other commands
+
 	uint8_t command = buffer[0];
+	uint8_t dest = buffer[2];
+	uint8_t p1 = buffer[5];
+
+	if (command == 0 && dest == 0) {
+		device_count();
+	}
+	else if (command == 0 && dest != 0 && p1 == 3) {
+		dib(dest);
+	}
 
 }
 
@@ -87,20 +149,18 @@ BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCyc
 	const uint8_t loc = address & 0x0f;
 
 	// Location:
-	// 0 = clear buffer and reset index
-	// 1 = write data to buffer
-	// 2 = process buffer
+	// 0x00 - 0x0D = write data to buffer (to allow the Y index in firmware to move with the bytes being copied
+	// 0x0E        = clear buffer and reset index
+	// 0x0F        = process buffer
 
-	switch (loc) {
-	case 0:
-		resetBuffer();
-		break;
-	case 1:
+	if (loc < 0xE) {
 		buffer[bufferLen++] = value;
-		break;
-	case 2:
+	}
+	else if (loc == 0xE) {
+		resetBuffer();
+	}
+	else if (loc == 0xF) {
 		process();
-		break;
 	}
 
 	return 0;
@@ -108,7 +168,6 @@ BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCyc
 
 BYTE FujiNet::IORead0(WORD programcounter, WORD address, ULONG nCycles)
 {
-	LogFileOutput("FUJINET IORead0: PC: %02x, address: %02x\n", programcounter, address);
 	const uint8_t loc = address & 0x0f;
 	BYTE res = 0;
 
@@ -131,6 +190,7 @@ BYTE FujiNet::IORead0(WORD programcounter, WORD address, ULONG nCycles)
 		break;
 	}
 
+	LogFileOutput("FUJINET IORead0: [%04x] = %02x (PC: %04x)\n", address, res, programcounter);
 	return res;
 }
 
@@ -160,6 +220,9 @@ void FujiNet::InitializeIO(LPBYTE pCxRomPeripheral)
 	BYTE* pData = GetFrame().GetResource(IDR_FUJINET_FW, "FIRMWARE", HARDDISK_FW_SIZE);
 	if (pData == NULL)
 		return;
+
+	// write the (slot number + 8) * 16 into the firmware code at location 13. This ensures it can work in any slot given
+	pData[13] = (BYTE) (((m_slot & 0xff) | 0x08) << 4);
 
 	memcpy(pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE, pData, HARDDISK_FW_SIZE);
 
