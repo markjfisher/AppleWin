@@ -34,6 +34,7 @@ tmp10   := $8b
 tmp11   := $8c
 tmp12   := $8d
 tmp13   := $8e
+tmp14   := $8f
 
 slot    := $90          ; $90/$91 are pointer to C0n0 location for this particular slot of firmware
 
@@ -47,6 +48,7 @@ header:
         lda        #$00
 
 ; CnFF has low byte of this location:
+; If we ever need to handle ProDos, we'll have to change firmware quite a bit.
 entrypoint_prodos:
         sec
         bcs     entrypoint
@@ -56,16 +58,28 @@ entrypoint_smartport:
         clc
 
 entrypoint:
+        ; If ProDOS is a thing, we need to put some changes in here. C=0 is SP, C=1 is ProDOS
+
         ; -----------------------------------------------------------------------------------------------
-        ; GET SLOT NUMBER
+        ; BACKUP ZP DATA TO CARD
         ; -----------------------------------------------------------------------------------------------
-        lda     #$00            ; byte offset 13, written to by AppleWin when loading this firmware with correct $n0 value
+        ; save all our ZP locations to card, so we can reset them later
+        ldx     #$00            ; save 16 bytes of ZP to card from $82 to $91
+:       lda     tmp1, x
+sta_loc1:
+        sta     $c000           ; 00 is overwritten by firmware to $nE which is our BACKUP DATA address
+        inx
+        cpx     #$10
+        bne     :-
+
+        ; -----------------------------------------------------------------------------------------------
+        ; SET SLOT NUMBER
+        ; -----------------------------------------------------------------------------------------------
+sta_loc2:
+        lda     #$00            ; 00 is overwritten by firmware to $n0
         sta     slot            ; create a ZP variable that points to our reading/writing routine
         lda     #$C0
         sta     slot+1
-
-        ; TODO: do we need to do anything specific for the prodos entry?
-        ; if we do need to, then C=1 for prodos, C=0 for smartport
 
         ; change the return address by adding 3 bytes to skip the data
         pla
@@ -96,15 +110,14 @@ entrypoint:
 
         ; start transfer to card
         lda     #$00
-        ldy     #$0e
-        sta     (slot), y       ; clear card buffer (C0nE)
+        ldy     #$0d
+        sta     (slot), y       ; clear card buffer (C0nD)
         tay
         lda     tmp3            ; command
-        sta     (slot), y       ; send to card (C0n0-C0nD)
+        sta     (slot), y       ; send to card (C0n0-C0nC)
 
         ; tmp4/5 = sp_cmdList
         ; send 6 bytes from cmdlist, which will be all the data any command needs to know about
-        ldy     #$00
 :       lda     (tmp4), y
         sta     (slot), y       ; send to card
         iny
@@ -120,6 +133,8 @@ entrypoint:
         sta     tmp2
 
         ; are we a write command? if so, send LEN bytes to card for the data being written
+        ; TODO: will other commands send devicespecs etc? CONTROL commands will need to send data in payload.
+        ; We could just send the full 512 byte payload every time and let the card deal with it
         lda     tmp3
         cmp     #$09
         bne     not_write
@@ -136,8 +151,9 @@ entrypoint:
         ora     tmp6
         bne     have_bytes      ; no data to copy! error out
 
-        ; ERROR out, this is a write with no bytes.
-        rts
+        ; this is a write with no bytes, exit doing nothing.
+        clc
+        bcc     restore_data
 
 have_bytes:
         lda     tmp1            ; copy payload location into tmp8/9, so we can increment it
@@ -166,13 +182,11 @@ loop:
         bne     loop
         ; fall through to process command        
 
-not_write:      ; c591
+not_write:
         ldy     #$0f
-        sta     (slot), y       ; send process command (C0nE)
-
+        sta     (slot), y       ; send process command (C0nF)
 
         ; HANDLE RETURNED DATA
-
         ldy     #$00
         lda     (slot), y
         sta     tmp3            ; len(lo)
@@ -201,6 +215,24 @@ l1:     lda     (slot), y
 :       dex
         bne     l1
 
+; restore ZP
+restore_data:
+        iny                     ; y = 3, card: restore data
+        ldx     #$00
+:       lda     (slot), y
+        sta     tmp1, x
+        inx
+        cpx     #$0d            ; 14 bytes, last 2 we deal with separately as they are slot zp location, which we're using in the loop
+        bne     :-
+
+        ; restore last 2 bytes into slot/slot+1 ZP location
+        lda     (slot), y       ; slot
+        pha
+        lda     (slot), y       ; slot+1
+        sta     slot+1
+        pla
+        sta     slot
+
         lda     #$00
         tax
         rts
@@ -208,7 +240,9 @@ l1:     lda     (slot), y
 
 ; $ff offset is dispatch offset
 size     = * - header
-gap      = $ff - size
+gap      = $fd - size
 
         .res    gap
+        .byte   <(sta_loc1+1)              ; these 2 allow firmware to easily find the location it needs to write the n0 value to
+        .byte   <(sta_loc2+1)
         .byte   <entrypoint_prodos

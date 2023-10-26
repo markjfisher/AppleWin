@@ -33,11 +33,16 @@ public:
     void process(void);
     void device_count(void);
     void dib(uint8_t dest);
+    void backupData(BYTE v);
+    BYTE restoreData();
 
 private:
     void resetBuffer();
 
     BYTE buffer[1024];
+    BYTE backup[24];
     unsigned long bufferLen;
     int bufferReadIndex;
+    int backupIndex;
+    int restoreIndex;
 };

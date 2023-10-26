@@ -59,8 +59,11 @@ FujiNet::~FujiNet()
 void FujiNet::resetBuffer()
 {
 	memset(buffer, 0, 1024);
+	memset(backup, 0, 24);
 	bufferLen = 0;
 	bufferReadIndex = 0;
+	backupIndex = 0;
+	restoreIndex = 0;
 }
 
 void FujiNet::Reset(const bool powerCycle)
@@ -143,21 +146,36 @@ void FujiNet::process()
 
 }
 
+void FujiNet::backupData(BYTE v)
+{
+	backup[backupIndex++] = v;
+}
+
+// Treat backup like FIFO, not stack
+BYTE FujiNet::restoreData()
+{
+	return backup[restoreIndex++];
+}
+
 BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCycles)
 {
 	LogFileOutput("FUJINET IOWrite0: PC: %02x, address: %02x, value: %d\n", programcounter, address, value);
 	const uint8_t loc = address & 0x0f;
 
 	// Location:
-	// 0x00 - 0x0D = write data to buffer (to allow the Y index in firmware to move with the bytes being copied
-	// 0x0E        = clear buffer and reset index
+	// 0x00 - 0x0C = write data to buffer (to allow the Y index in firmware to move with the bytes being copied, as there's only a few bytes to copy)
+	// 0x0D        = clear buffer and reset index
+	// 0x0E        = save data (zp location backup)
 	// 0x0F        = process buffer
 
-	if (loc < 0xE) {
+	if (loc < 0xD) {
 		buffer[bufferLen++] = value;
 	}
-	else if (loc == 0xE) {
+	else if (loc == 0xD) {
 		resetBuffer();
+	}
+	else if (loc == 0xE) {
+		backupData(value);
 	}
 	else if (loc == 0xF) {
 		process();
@@ -175,6 +193,7 @@ BYTE FujiNet::IORead0(WORD programcounter, WORD address, ULONG nCycles)
 	// 0 = lo byte of bufferLen
 	// 1 = hi byte of bufferLen
 	// 2 = next byte
+	// 3 = restore backup data
 
 	switch (loc) {
 	case 0:
@@ -187,6 +206,9 @@ BYTE FujiNet::IORead0(WORD programcounter, WORD address, ULONG nCycles)
 		if (bufferReadIndex < bufferLen) {
 			res = buffer[bufferReadIndex++];
 		}
+		break;
+	case 3:
+		res = restoreData();
 		break;
 	}
 
