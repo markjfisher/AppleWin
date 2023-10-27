@@ -29,14 +29,8 @@ tmp5    := $86
 tmp6    := $87
 tmp7    := $88
 tmp8    := $89
-tmp9    := $8a
-tmp10   := $8b
-tmp11   := $8c
-tmp12   := $8d
-tmp13   := $8e
-tmp14   := $8f
 
-slot    := $90          ; $90/$91 are pointer to C0n0 location for this particular slot of firmware
+slot    := $8A          ; 2 byte pointer to C0n0 location for this particular slot of firmware
 
         .segment "fujinet"
 
@@ -64,12 +58,12 @@ entrypoint:
         ; BACKUP ZP DATA TO CARD
         ; -----------------------------------------------------------------------------------------------
         ; save all our ZP locations to card, so we can reset them later
-        ldx     #$00            ; save 16 bytes of ZP to card from $82 to $91
+        ldx     #$00            ; save ZP temp variable locations to card from
 :       lda     tmp1, x
 sta_loc1:
         sta     $c000           ; 00 is overwritten by firmware to $nE which is our BACKUP DATA address
         inx
-        cpx     #$10
+        cpx     #$0A
         bne     :-
 
         ; -----------------------------------------------------------------------------------------------
@@ -81,14 +75,16 @@ sta_loc2:
         lda     #$C0
         sta     slot+1
 
-        ; Get the return address off the stack, need to read next 3 bytes, and adjust return value
+        ; -----------------------------------------------------------------------------------------------
+        ; GET CMDLIST DATA AND FIX RETURN ADDRESS
+        ; -----------------------------------------------------------------------------------------------
         pla
         sta     tmp1            ; low byte of return-1
         pla
         sta     tmp2            ; high byte of return-1
 
         ; grab the data after the jsr call to the entrypoint.
-        ; copy form (tmp1)+1..3 to tmp3/4/5
+        ; copy to tmp3/4/5
         ldy     #$03
 :       lda     (tmp1), y
         sta     tmp3-1, y       ; tmp3/4/5
@@ -108,13 +104,15 @@ sta_loc2:
         lda     tmp1
         pha
 
-        ; start transfer to card
+        ; -----------------------------------------------------------------------------------------------
+        ; CARD: START SENDING COMMAND DATA
+        ; -----------------------------------------------------------------------------------------------
         lda     #$00
         ldy     #$0f
         sta     (slot), y       ; clear card buffer (C0nF = 00)
         tay                     ; y = 0 for card write buffer
         lda     tmp3            ; command
-        sta     (slot), y       ; send to card (C0n0-C0nD)
+        sta     (slot), y       ; send command to card (C0n0-C0nD)
 
         ; tmp4/5 = sp_cmdList
         ; send 6 bytes from cmdlist, which will be all the data any command needs to know about
@@ -124,7 +122,7 @@ sta_loc2:
         cpy     #$06
         bne     :-
 
-        ; get payload into tmp1/2
+        ; reuse tmp1/2 for payload location
         ldy     #$02
         lda     (tmp4), y
         sta     tmp1
@@ -132,13 +130,17 @@ sta_loc2:
         lda     (tmp4), y
         sta     tmp2
 
+        ; -----------------------------------------------------------------------------------------------
+        ; WRITE PAYLOAD TO CARD
+        ; -----------------------------------------------------------------------------------------------
+
         ; write 512 bytes of payload to buffer.
         ; TODO: what commands definitely DO NOT need anything sent? Filter those
-        ; This is somewhat wasteful for some commands, but saves a lot of code
+        ; This is somewhat wasteful for some commands, but saves a lot of code in firmware
         ldx     #$02
         ldy     #$00
         sty     tmp6            ; byte count index
-loop:
+send_payload_loop:
         lda     (tmp1), y       ; read payload byte
         sta     (slot), y       ; send payload byte to card
 
@@ -146,77 +148,78 @@ loop:
         bne     :+
         inc     tmp2
 :       dec     tmp6
-        bne     loop
+        bne     send_payload_loop
         dex                     ; next page of bytes
-        bne     loop
-        
+        bne     send_payload_loop
+
         ; restore tmp2 (hi byte of payload) which has been incremented by 2 for the 2 pages of the copy
         dec     tmp2
         dec     tmp2
 
-        ; PROCESS
+        ; -----------------------------------------------------------------------------------------------
+        ; CARD: PROCESS - this causes FujiNet call
+        ; -----------------------------------------------------------------------------------------------
         ldy     #$0f
         tya
         sta     (slot), y       ; send process command to card (C0nF = anything but 0)
 
-        ; HANDLE RETURNED DATA
+        ; -----------------------------------------------------------------------------------------------
+        ; CARD: READ RESPONSE
+        ; -----------------------------------------------------------------------------------------------
         ldy     #$00
-        lda     (slot), y
-        sta     tmp3            ; len(lo)
+        lda     (slot), y       ; card: get lo byte count
+        sta     tmp3
         iny
+        lda     (slot), y       ; card: get hi byte count
+        sta     tmp4            ; tmp3/4 = count
+
+        ; loop over given bytes, do lo count first, then any pages from hi count
+        ldx     tmp3            ; tmp3 is lo byte count
+l1:     ldy     #$02            ; card: read next byte
         lda     (slot), y
-        sta     tmp4            ; len(hi)
-
-        ; TODO: LOOP FOR ALL LEN NOT JUST LO BYTE
-        ;; move the tmp1 (payload) pointer back by 2 for initial y value
-        sec
-        lda     tmp1
-        sbc     #$02
-        sta     tmp1
-        bcs     :+
-        dec     tmp2
-
-:       ldx     tmp3            ; byte count in x
-        iny                     ; y = 2, card: next byte
-
-l1:     lda     (slot), y
+        ldy     #$00            ; 0 offset for payload
         sta     (tmp1), y
-        ; move payload on, keep y index same
+        ; move payload (tmp1/2) on by 1 byte, can't change y
         inc     tmp1
         bne     :+
         inc     tmp2
 :       dex
         bne     l1
+        dec     tmp4
+        bmi     end_copy        ; would fail if there are > #$8100 bytes to copy. Assumption is at most #$200, so should be safe
+        bpl     l1              ; x is already 0, which will trigger 256 more bytes per 
 
-; restore ZP
-restore_data:
-        iny                     ; y = 3, card: restore data
+end_copy:
+
+        ; -----------------------------------------------------------------------------------------------
+        ; RESTORE ZP DATA
+        ; -----------------------------------------------------------------------------------------------
+        ldy     #$03            ; card: restore data
         ldx     #$00
 :       lda     (slot), y
         sta     tmp1, x
         inx
-        cpx     #$0d            ; 14 bytes, last 2 we deal with separately as they are slot zp location, which we're using in the loop
+        cpx     #$08            ; do 8 bytes for tmp1-8
         bne     :-
 
-        ; restore last 2 bytes into slot/slot+1 ZP location
+        ; restore last 2 bytes manually into slot/slot+1 ZP location (used by loop above, so must do directly)
         lda     (slot), y       ; slot
         pha
         lda     (slot), y       ; slot+1
         sta     slot+1
         pla
         sta     slot
-        ; all ZP locations are restored
+        ; all ZP locations are restored, return 0 for no error
 
         lda     #$00
         tax
         rts
 
-
 ; $ff offset is dispatch offset
 size     = * - header
-gap      = $fd - size
+gap      = $fd - size                   ; allow for 3 bytes at the end
 
         .res    gap
-        .byte   <(sta_loc1+1)              ; these 2 allow firmware to easily find the location it needs to write the n0/nE value to
+        .byte   <(sta_loc1+1)           ; these 2 allow firmware to easily find the location it needs to write the n0/nE value to
         .byte   <(sta_loc2+1)
-        .byte   <entrypoint_prodos
+        .byte   <entrypoint_prodos      ; entry point
