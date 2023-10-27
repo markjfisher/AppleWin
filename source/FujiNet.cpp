@@ -100,30 +100,33 @@ void FujiNet::process()
 	// Buffer has following data:
 	// 00 : command
 	// 01 : command parameter count
-	// 02 : destination
-	// 03 : payload lo
-	// 04 : payload hi
-	// 05 : param 1
-	// 06 : param 2
+	// 02 : destination (the device number of the FujiNet target, e.g. "NETWORK" may be 2, "PRINTER" 3, etc)
+	// 03 : payload lo (used only by firmware)
+	// 04 : payload hi (used only by firmware)
+	// 05 : param 1 (used by control/status, read(l), write (l))
+	// 06 : param 2 (used by read(h), write (h))
 	// 07+: payload data if required
 
 	// Payload data contains:
 	
-	// CONTROL COMMAND
+	// CONTROL COMMAND (READ FROM PAYLOAD, NO WRITE BACK FOR FIRMWARE) [4 + deviceSpec.size()]
 	// 00 : Length (lo)
 	// 01 : Length (hi)
 	// 02 : Mode (e.g. R/W = $0C)
 	// 03 : Translation (0 = None, etc)
 	// 04 .. 04 + (Len - 2) = nul terminated Device Spec
 
-	// OPEN/CLOSE
+	// OPEN/CLOSE (NO PAYLOAD USE) [0]
 	// N/A
 
-	// READ/WRITE
-	// DATA for Write, or to be sent back for Read.
+	// READ (WRITE BACK TO FIRMWARE) [0]
 	// The length is in Buffer[5,6]
 
-	// STATUS
+	// WRITE (READ FROM PAYLOAD FOR SENDING TO FN) [length specified as below]
+	// The length is in Buffer[5,6]
+	// Data in Buffer[7+]
+
+	// STATUS (WRITES TO PAYLOAD) [0]
 	// Length -> Payload[0,1]
 
 	// To start, get enough working fake without calling actual FN.
@@ -177,21 +180,27 @@ BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCyc
 	// Location:
 	// 0x00 - 0x0D = write data to buffer (to allow the Y index in firmware to move with the bytes being copied, as there's only a few bytes to copy)
 	// 0x0E        = store given value in backup array (zp location backup)
-	// 0x0F        = command, value 0 = clear buffer + reset indexes, value >0 = process buffer
+	// 0x0F        = special command, choose from value:
+	//                0 = reset buffer + indexes
+	//                1 = process buffer
 
-	if (loc < 0xE) {
-		addToBuffer(value);
-	}
-	else if (loc == 0xE) {
+	switch (loc) {
+	case 0xE:
 		backupData(value);
-	}
-	else if (loc == 0xF) {
-		if (value == 0) {
+		break;
+	case 0xF:
+		switch (value) {
+		case 0:
 			resetBuffer();
-		}
-		else {
+			break;
+		case 1:
 			process();
+			break;
 		}
+		break;
+	default:
+		addToBuffer(value);
+		break;
 	}
 
 	return 0;

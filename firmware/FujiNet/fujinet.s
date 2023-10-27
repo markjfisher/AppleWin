@@ -134,11 +134,26 @@ sta_loc2:
         ; WRITE PAYLOAD TO CARD
         ; -----------------------------------------------------------------------------------------------
 
-        ; write 512 bytes of payload to buffer.
-        ; TODO: what commands definitely DO NOT need anything sent? Filter those
-        ; This is somewhat wasteful for some commands, but saves a lot of code in firmware
+        ; either skip sending bytes for commands not requiring it
+        ; or 512 to be sure all sent, and keep code simple.
+
+        lda     tmp3
+        ; SP_CMD_STATUS           = 0 [0]
+        ; SP_CMD_CONTROL          = 4 [512]
+        ; SP_CMD_OPEN             = 6 [0]
+        ; SP_CMD_CLOSE            = 7 [0]
+        ; SP_CMD_READ             = 8 [0]
+        ; SP_CMD_WRITE            = 9 [512]
+        cmp     #$04
+        beq     do_512
+        cmp     #$09
+        beq     do_512
+        ; everything else, skip copy
+        bne     start_process
+
+do_512:
         ldx     #$02
-        ldy     #$00
+        ldy     #$00            ; card: write to buffer
         sty     tmp6            ; byte count index
 send_payload_loop:
         lda     (tmp1), y       ; read payload byte
@@ -159,9 +174,10 @@ send_payload_loop:
         ; -----------------------------------------------------------------------------------------------
         ; CARD: PROCESS - this causes FujiNet call
         ; -----------------------------------------------------------------------------------------------
+start_process:
         ldy     #$0f
-        tya
-        sta     (slot), y       ; send process command to card (C0nF = anything but 0)
+        lda     #$01
+        sta     (slot), y       ; send process command to card (C0nF = 1)
 
         ; -----------------------------------------------------------------------------------------------
         ; CARD: READ RESPONSE

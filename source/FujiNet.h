@@ -40,7 +40,9 @@ public:
 private:
     void resetBuffer();
 
+    // Buffer for data between "card" and Fujinet
     BYTE buffer[1024];
+    // Temporary storage for the Firmware to save data to, and restore from to be clean
     BYTE backup[24];
     unsigned long bufferLen;
     int bufferReadIndex;
