@@ -81,7 +81,7 @@ sta_loc2:
         lda     #$C0
         sta     slot+1
 
-        ; change the return address by adding 3 bytes to skip the data
+        ; Get the return address off the stack, need to read next 3 bytes, and adjust return value
         pla
         sta     tmp1            ; low byte of return-1
         pla
@@ -110,17 +110,17 @@ sta_loc2:
 
         ; start transfer to card
         lda     #$00
-        ldy     #$0d
-        sta     (slot), y       ; clear card buffer (C0nD)
-        tay
+        ldy     #$0f
+        sta     (slot), y       ; clear card buffer (C0nF = 00)
+        tay                     ; y = 0 for card write buffer
         lda     tmp3            ; command
-        sta     (slot), y       ; send to card (C0n0-C0nC)
+        sta     (slot), y       ; send to card (C0n0-C0nD)
 
         ; tmp4/5 = sp_cmdList
         ; send 6 bytes from cmdlist, which will be all the data any command needs to know about
 :       lda     (tmp4), y
         sta     (slot), y       ; send to card
-        iny
+        iny                     ; c0n0-c0n5 = card write to buffer
         cpy     #$06
         bne     :-
 
@@ -132,59 +132,32 @@ sta_loc2:
         lda     (tmp4), y
         sta     tmp2
 
-        ; are we a write command? if so, send LEN bytes to card for the data being written
-        ; TODO: will other commands send devicespecs etc? CONTROL commands will need to send data in payload.
-        ; We could just send the full 512 byte payload every time and let the card deal with it
-        lda     tmp3
-        cmp     #$09
-        bne     not_write
-
-        ; get len
-        iny     ; y = 4
-        lda     (tmp4), y
-        sta     tmp6
-        iny
-        lda     (tmp4), y
-        sta     tmp7
-
-        ; validate it is > 0
-        ora     tmp6
-        bne     have_bytes      ; no data to copy! error out
-
-        ; this is a write with no bytes, exit doing nothing.
-        clc
-        bcc     restore_data
-
-have_bytes:
-        lda     tmp1            ; copy payload location into tmp8/9, so we can increment it
-        sta     tmp8
-        lda     tmp2
-        sta     tmp9
-
+        ; write 512 bytes of payload to buffer.
+        ; TODO: what commands definitely DO NOT need anything sent? Filter those
+        ; This is somewhat wasteful for some commands, but saves a lot of code
+        ldx     #$02
         ldy     #$00
+        sty     tmp6            ; byte count index
 loop:
-        lda     (tmp8), y       ; read payload byte
-        sty     tmp10           ; save y, as we need to to be 0 for write
-        ldy     #$00
+        lda     (tmp1), y       ; read payload byte
         sta     (slot), y       ; send payload byte to card
-        ldy     tmp10
 
-        inc     tmp8            ; move payload pointer on by 1
+        inc     tmp1            ; move payload pointer on by 1
         bne     :+
-        inc     tmp9
-
-        ; reduce the byte count by 1
+        inc     tmp2
 :       dec     tmp6
         bne     loop
-        dec     tmp7
-        lda     tmp7
-        cmp     #$ff
+        dex                     ; next page of bytes
         bne     loop
-        ; fall through to process command        
+        
+        ; restore tmp2 (hi byte of payload) which has been incremented by 2 for the 2 pages of the copy
+        dec     tmp2
+        dec     tmp2
 
-not_write:
+        ; PROCESS
         ldy     #$0f
-        sta     (slot), y       ; send process command (C0nF)
+        tya
+        sta     (slot), y       ; send process command to card (C0nF = anything but 0)
 
         ; HANDLE RETURNED DATA
         ldy     #$00
@@ -194,7 +167,7 @@ not_write:
         lda     (slot), y
         sta     tmp4            ; len(hi)
 
-        ;; quick test, just use lo, set slot lo to n2 (C0n2)
+        ; TODO: LOOP FOR ALL LEN NOT JUST LO BYTE
         ;; move the tmp1 (payload) pointer back by 2 for initial y value
         sec
         lda     tmp1
@@ -232,6 +205,7 @@ restore_data:
         sta     slot+1
         pla
         sta     slot
+        ; all ZP locations are restored
 
         lda     #$00
         tax
@@ -243,6 +217,6 @@ size     = * - header
 gap      = $fd - size
 
         .res    gap
-        .byte   <(sta_loc1+1)              ; these 2 allow firmware to easily find the location it needs to write the n0 value to
+        .byte   <(sta_loc1+1)              ; these 2 allow firmware to easily find the location it needs to write the n0/nE value to
         .byte   <(sta_loc2+1)
         .byte   <entrypoint_prodos

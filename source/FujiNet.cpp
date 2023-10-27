@@ -148,13 +148,25 @@ void FujiNet::process()
 
 void FujiNet::backupData(BYTE v)
 {
-	backup[backupIndex++] = v;
+	if (backupIndex < 24) {
+		backup[backupIndex++] = v;
+	}
 }
 
 // Treat backup like FIFO, not stack
 BYTE FujiNet::restoreData()
 {
-	return backup[restoreIndex++];
+	if (restoreIndex < 24) {
+		return backup[restoreIndex++];
+	}
+	return 0;
+}
+
+void FujiNet::addToBuffer(BYTE v)
+{
+	if (bufferLen < 1024) {
+		buffer[bufferLen++] = v;
+	}
 }
 
 BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCycles)
@@ -163,22 +175,23 @@ BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCyc
 	const uint8_t loc = address & 0x0f;
 
 	// Location:
-	// 0x00 - 0x0C = write data to buffer (to allow the Y index in firmware to move with the bytes being copied, as there's only a few bytes to copy)
-	// 0x0D        = clear buffer and reset index
-	// 0x0E        = save data (zp location backup)
-	// 0x0F        = process buffer
+	// 0x00 - 0x0D = write data to buffer (to allow the Y index in firmware to move with the bytes being copied, as there's only a few bytes to copy)
+	// 0x0E        = store given value in backup array (zp location backup)
+	// 0x0F        = command, value 0 = clear buffer + reset indexes, value >0 = process buffer
 
-	if (loc < 0xD) {
-		buffer[bufferLen++] = value;
-	}
-	else if (loc == 0xD) {
-		resetBuffer();
+	if (loc < 0xE) {
+		addToBuffer(value);
 	}
 	else if (loc == 0xE) {
 		backupData(value);
 	}
 	else if (loc == 0xF) {
-		process();
+		if (value == 0) {
+			resetBuffer();
+		}
+		else {
+			process();
+		}
 	}
 
 	return 0;
@@ -192,8 +205,8 @@ BYTE FujiNet::IORead0(WORD programcounter, WORD address, ULONG nCycles)
 	// Location:
 	// 0 = lo byte of bufferLen
 	// 1 = hi byte of bufferLen
-	// 2 = next byte
-	// 3 = restore backup data
+	// 2 = read next byte from buffer
+	// 3 = read from backup data
 
 	switch (loc) {
 	case 0:
@@ -243,8 +256,12 @@ void FujiNet::InitializeIO(LPBYTE pCxRomPeripheral)
 	if (pData == NULL)
 		return;
 
-	// write the (slot number + 8) * 16 into the firmware code at location 13. This ensures it can work in any slot given
-	pData[13] = (BYTE) (((m_slot & 0xff) | 0x08) << 4);
+	// set 2 locations in firmware that need to know the slot number for reading/writing to the card
+	BYTE loc1_ne = pData[0xFD]; 	// location of where to put $nE, used for backup of zp values
+	BYTE loc2_n0 = pData[0xFE]; 	// location of where to put $n0, used for "(slot),y"
+	BYTE n0 = (((m_slot & 0xff) | 0x08) << 4); // (slot + 8) * 16, giving low byte of $C0n0
+	pData[loc1_ne] = n0 + 0x0E;
+	pData[loc2_n0] = n0;
 
 	memcpy(pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE, pData, HARDDISK_FW_SIZE);
 

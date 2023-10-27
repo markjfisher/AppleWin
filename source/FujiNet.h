@@ -34,6 +34,7 @@ public:
     void device_count(void);
     void dib(uint8_t dest);
     void backupData(BYTE v);
+    void addToBuffer(BYTE v);
     BYTE restoreData();
 
 private:
