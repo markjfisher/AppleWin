@@ -275,6 +275,14 @@
       <Filter>Source Files\Emulator</Filter>
     </ClCompile>
     <ClCompile Include="source\FujiNet.cpp" />
+    <ClCompile Include="source\SPoverSLIP\Util.cpp" />
+    <ClCompile Include="source\SPoverSLIP\SLIP.cpp" />
+    <ClCompile Include="source\SPoverSLIP\Connection.cpp" />
+    <ClCompile Include="source\SPoverSLIP\Listener.cpp" />
+    <ClCompile Include="source\SPoverSLIP\Requestor.cpp" />
+    <ClCompile Include="source\SPoverSLIP\StatusRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\StatusResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\TCPConnection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\CommonVICE\6510core.h">
@@ -620,6 +628,19 @@
       <Filter>Source Files\Emulator</Filter>
     </ClInclude>
     <ClInclude Include="source\FujiNet.h" />
+    <ClInclude Include="source\SPoverSLIP\SPoSLIP.h" />
+    <ClInclude Include="source\SPoverSLIP\Util.h" />
+    <ClInclude Include="source\SPoverSLIP\SLIP.h" />
+    <ClInclude Include="source\SPoverSLIP\Packet.h" />
+    <ClInclude Include="source\SPoverSLIP\Connection.h" />
+    <ClInclude Include="source\SPoverSLIP\Listener.h" />
+    <ClInclude Include="source\SPoverSLIP\Request.h" />
+    <ClInclude Include="source\SPoverSLIP\Requestor.h" />
+    <ClInclude Include="source\SPoverSLIP\Response.h" />
+    <ClInclude Include="source\SPoverSLIP\SmartPortHandler.h" />
+    <ClInclude Include="source\SPoverSLIP\StatusRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\StatusResponse.h" />
+    <ClInclude Include="source\SPoverSLIP\TCPConnection.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\Applewin.bmp">

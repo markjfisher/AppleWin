@@ -1,51 +1,62 @@
+// ReSharper disable CppInconsistentNaming
 #pragma once
 
 #include "Card.h"
 
 #include <vector>
+#include <memory>
 #include <map>
 #include "W5100.h"
+#include "SPoverSLIP/Listener.h"
 
 /*
 * Documentation from
 *
 */
 
-class FujiNet : public Card
+enum
+{
+	SP_CMD_STATUS       = 0,
+	SP_CMD_READBLOCK    = 1,
+	SP_CMD_WRITEBLOCK   = 2,
+	SP_CMD_FORMAT       = 3,
+	SP_CMD_CONTROL      = 4,
+	SP_CMD_INIT         = 5,
+	SP_CMD_OPEN         = 6,
+	SP_CMD_CLOSE        = 7,
+	SP_CMD_READ         = 8,
+	SP_CMD_WRITE        = 9
+};
+
+
+class FujiNet final : public Card
 {
 public:
     static const std::string& GetSnapshotCardName();
 
-    enum PacketDestination { HOST, BROADCAST, OTHER };
+    explicit FujiNet(const UINT slot);
+    ~FujiNet() override;
 
-    FujiNet(UINT slot);
-    virtual ~FujiNet();
+    void Destroy(void) override {}
+    void InitializeIO(LPBYTE pCxRomPeripheral) override;
+    void Reset(const bool powerCycle) override;
+    void Update(const ULONG nExecutedCycles) override;
+    void SaveSnapshot(YamlSaveHelper& yamlSaveHelper) override;
+    bool LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT version) override;
 
-    virtual void Destroy(void) {}
-    virtual void InitializeIO(LPBYTE pCxRomPeripheral);
-    virtual void Reset(const bool powerCycle);
-    virtual void Update(const ULONG nExecutedCycles);
-    virtual void SaveSnapshot(YamlSaveHelper& yamlSaveHelper);
-    virtual bool LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT version);
+    BYTE IOWrite0(WORD programCounter, WORD address, BYTE value, ULONG nCycles);
+    void deviceCount(WORD spPayloadLoc);
+    void dib(BYTE unitNumber, WORD spPayloadLoc);
+    void status(BYTE unitNumber, WORD spPayloadLoc, WORD paramsLoc);
+    void processSPoverSLIP(void);
 
-    BYTE IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCycles);
-    BYTE IORead0(WORD programcounter, WORD address, ULONG nCycles);
-    void process(void);
-    void device_count(void);
-    void dib(uint8_t dest);
-    void backupData(BYTE v);
-    void addToBuffer(BYTE v);
-    BYTE restoreData();
+    // SP over SLIP
+    void createListener();
 
 private:
-    void resetBuffer();
-
     // Buffer for data between "card" and Fujinet
     BYTE buffer[1024];
-    // Temporary storage for the Firmware to save data to, and restore from to be clean
-    BYTE backup[24];
-    unsigned long bufferLen;
-    int bufferReadIndex;
-    int backupIndex;
-    int restoreIndex;
+
+    // SP over SLIP
+    std::unique_ptr<Listener> listener_;
 };

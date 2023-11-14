@@ -1,4 +1,4 @@
-cl65.exe fujinet.s -C fujinet.cfg -o fujinet.bin
+cl65.exe -t none fujinet.s -o fujinet.bin
 @IF %ERRORLEVEL% NEQ 0 goto error
 
 copy fujinet.bin ..\..\resource

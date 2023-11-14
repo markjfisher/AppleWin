@@ -18,237 +18,130 @@ along with AppleWin; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+// ReSharper disable CppInconsistentNaming
+
 #include <StdAfx.h>
 #include <string>
-#include <fstream>
-#include <streambuf>
+#include <memory>
 
 #include "YamlHelper.h"
 #include "FujiNet.h"
 #include "Interface.h"
-#include "W5100.h"
 #include "../Registry.h"
 
 #include "StrFormat.h"
 #include "Memory.h"
+#include "CPU.h"
 #include "Log.h"
 #include "../resource/resource.h"
-
-#include <iostream>
-#include <urlmon.h>
-#pragma comment(lib,"urlmon.lib")
 
 const std::string& FujiNet::GetSnapshotCardName()
 {
 	static const std::string name("FujiNet");
-	LogFileOutput("FUJINET Returning name FujiNet\n");
+	LogFileOutput("FujiNet Returning name FujiNet\n");
 	return name;
 }
 
-FujiNet::FujiNet(UINT slot) : Card(CT_FujiNet, slot)
+FujiNet::FujiNet(const UINT slot) : Card(CT_FujiNet, slot)
 {
-	LogFileOutput("FUJINET ctor, slot: %d\n", slot);
+	LogFileOutput("FujiNet ctor, slot: %d\n", slot);
 	Reset(true);
+	createListener();
 }
 
 FujiNet::~FujiNet()
 {
-	LogFileOutput("FUJINET dtor\n");
-}
-
-void FujiNet::resetBuffer()
-{
-	memset(buffer, 0, 1024);
-	memset(backup, 0, 24);
-	bufferLen = 0;
-	bufferReadIndex = 0;
-	backupIndex = 0;
-	restoreIndex = 0;
+	LogFileOutput("FujiNet destructor\n");
 }
 
 void FujiNet::Reset(const bool powerCycle)
 {
-	LogFileOutput("FUJINET Bridge Initialization, reset called\n");
-	resetBuffer();
-
+	LogFileOutput("FujiNet Bridge Initialization, reset called\n");
 	if (powerCycle)
 	{
-
+		// may have to send RESET here
 	}
 }
 
-void FujiNet::device_count()
+void FujiNet::processSPoverSLIP()
 {
-	// write "6" back to the A2 when it asks for a value.
-	LogFileOutput("FUJINET device count, len: 1, buff: 6\n");
-	bufferLen = 1;
-	buffer[0] = 6;
-}
+	LogFileOutput("FujiNet processing SP command\n");
+	// stack pointer location holds the Command
+	WORD rtsLocation = mem[regs.sp + 1] + (mem[regs.sp + 2] << 8) + 1;
+	const BYTE command = mem[rtsLocation];
+	const WORD cmdListLoc = mem[rtsLocation + 1] + (mem[rtsLocation + 2] << 8);
+	// BYTE paramCount = mem[cmdListLoc];
+	const BYTE unitNumber = mem[cmdListLoc + 1];
+	const WORD spPayloadLoc = mem[cmdListLoc + 2] + (mem[cmdListLoc + 3] << 8);
+	const WORD paramsLoc = cmdListLoc + 4;
 
-void FujiNet::dib(uint8_t dest)
-{
-	LogFileOutput("FUJINET dib, len: 7, buff: NETWORK@5\n");
-	bufferLen = 7+5; // payload seems to be sent back to payload+5, but we copy initial 5 bytes back too.
-	strcpy((char *) buffer+5, "NETWORK");
-	buffer[4] = 7; // not sure this is used, not in network_library anyway.
-}
+	// Fix the stack so the RTS in the firmware returns to the instruction after the data (which should be "BNE ERROR")
+	rtsLocation += 3;
+	mem[regs.sp + 1] = rtsLocation & 0xff;
+	mem[regs.sp + 2] = (rtsLocation >> 8) & 0xff;
 
-void FujiNet::process()
-{
-	LogFileOutput("FUJINET processing %d bytes\n", bufferLen);
-
-	// Buffer has following data:
-	// 00 : command
-	// 01 : command parameter count
-	// 02 : destination (the device number of the FujiNet target, e.g. "NETWORK" may be 2, "PRINTER" 3, etc)
-	// 03 : payload lo (used only by firmware)
-	// 04 : payload hi (used only by firmware)
-	// 05 : param 1 (used by control/status, read(l), write (l))
-	// 06 : param 2 (used by read(h), write (h))
-	// 07+: payload data if required
-
-	// Payload data contains:
-	
-	// CONTROL COMMAND (READ FROM PAYLOAD, NO WRITE BACK FOR FIRMWARE) [4 + deviceSpec.size()]
-	// 00 : Length (lo)
-	// 01 : Length (hi)
-	// 02 : Mode (e.g. R/W = $0C)
-	// 03 : Translation (0 = None, etc)
-	// 04 .. 04 + (Len - 2) = nul terminated Device Spec
-
-	// OPEN/CLOSE (NO PAYLOAD USE) [0]
-	// N/A
-
-	// READ (WRITE BACK TO FIRMWARE) [0]
-	// The length is in Buffer[5,6]
-
-	// WRITE (READ FROM PAYLOAD FOR SENDING TO FN) [length specified as below]
-	// The length is in Buffer[5,6]
-	// Data in Buffer[7+]
-
-	// STATUS (WRITES TO PAYLOAD) [0]
-	// Length -> Payload[0,1]
-
-	// To start, get enough working fake without calling actual FN.
-	// STATUS 0, DEST  = 0                          -> do device count
-	// STATUS 0, DEST != 0, PARAM1 = statuscode = 3 -> DIB, use DEST to fetch the device name
-	// othewise normal STATUS
-
-	// everything else is other commands
-
-	uint8_t command = buffer[0];
-	uint8_t dest = buffer[2];
-	uint8_t p1 = buffer[5];
-
-	if (command == 0 && dest == 0) {
-		device_count();
-	}
-	else if (command == 0 && dest != 0 && p1 == 3) {
-		dib(dest);
-	}
-
-}
-
-void FujiNet::backupData(BYTE v)
-{
-	if (backupIndex < 24) {
-		backup[backupIndex++] = v;
-	}
-}
-
-// Treat backup like FIFO, not stack
-BYTE FujiNet::restoreData()
-{
-	if (restoreIndex < 24) {
-		return backup[restoreIndex++];
-	}
-	return 0;
-}
-
-void FujiNet::addToBuffer(BYTE v)
-{
-	if (bufferLen < 1024) {
-		buffer[bufferLen++] = v;
-	}
-}
-
-BYTE FujiNet::IOWrite0(WORD programcounter, WORD address, BYTE value, ULONG nCycles)
-{
-	LogFileOutput("FUJINET IOWrite0: PC: %02x, address: %02x, value: %d\n", programcounter, address, value);
-	const uint8_t loc = address & 0x0f;
-
-	// Location:
-	// 0x00 - 0x0D = write data to buffer (to allow the Y index in firmware to move with the bytes being copied, as there's only a few bytes to copy)
-	// 0x0E        = store given value in backup array (zp location backup)
-	// 0x0F        = special command, choose from value:
-	//                0 = reset buffer + indexes
-	//                1 = process buffer
-
-	switch (loc) {
-	case 0xE:
-		backupData(value);
-		break;
-	case 0xF:
-		switch (value) {
-		case 0:
-			resetBuffer();
-			break;
-		case 1:
-			process();
-			break;
-		}
+	switch (command) {
+	case SP_CMD_STATUS:
+		status(unitNumber, spPayloadLoc, paramsLoc);
 		break;
 	default:
-		addToBuffer(value);
 		break;
+	}
+
+	// set A/X/Y to 0 and end for now.
+	regs.a = 0;
+	regs.x = 0;
+	regs.y = 0;
+}
+
+BYTE FujiNet::IOWrite0(WORD programCounter, WORD address, BYTE value, ULONG nCycles)
+{
+	LogFileOutput("FujiNet IOWrite0: PC: %02x, address: %02x, value: %d\n", programCounter, address, value);
+	const uint8_t loc = address & 0x0f;
+	// Only do something if $65 is sent to address $02
+	if (value == 0x65 && loc == 0x02)
+	{
+		processSPoverSLIP();
 	}
 
 	return 0;
 }
 
-BYTE FujiNet::IORead0(WORD programcounter, WORD address, ULONG nCycles)
+void FujiNet::deviceCount(WORD spPayloadLoc)
 {
-	const uint8_t loc = address & 0x0f;
-	BYTE res = 0;
-
-	// Location:
-	// 0 = lo byte of bufferLen
-	// 1 = hi byte of bufferLen
-	// 2 = read next byte from buffer
-	// 3 = read from backup data
-
-	switch (loc) {
-	case 0:
-		res = (BYTE)(bufferLen & 0x00ff);
-		break;
-	case 1:
-		res = (BYTE)((bufferLen >> 8) && 0xff);
-		break;
-	case 2:
-		if (bufferReadIndex < bufferLen) {
-			res = buffer[bufferReadIndex++];
-		}
-		break;
-	case 3:
-		res = restoreData();
-		break;
-	}
-
-	LogFileOutput("FUJINET IORead0: [%04x] = %02x (PC: %04x)\n", address, res, programcounter);
-	return res;
+	// listener_
 }
 
-BYTE __stdcall c0Handler(WORD programcounter, WORD address, BYTE write, BYTE value, ULONG nCycles)
+void FujiNet::dib(BYTE unitNumber, WORD spPayloadLoc)
 {
-	UINT uSlot = ((address & 0xf0) >> 4) - 8;
+}
+
+void FujiNet::status(const BYTE unitNumber, const WORD spPayloadLoc, const WORD paramsLoc)
+{
+	const BYTE statusCode = mem[paramsLoc];
+
+	if (unitNumber == 0 && statusCode == 0)
+	{
+		deviceCount(spPayloadLoc);
+	}
+	else if (unitNumber != 0 && statusCode == 3)
+	{
+		dib(unitNumber, spPayloadLoc);
+	}
+	else
+	{
+		// regular status for this device that needs to go to a connected device
+	}
+}
+
+BYTE __stdcall c0Handler(WORD programCounter, WORD address, BYTE write, BYTE value, ULONG nCycles)
+{
+	const UINT uSlot = ((address & 0xf0) >> 4) - 8;
 
 	if (uSlot < 8) {
-		FujiNet* pCard = (FujiNet*)MemGetSlotParameters(uSlot);
+		auto* pCard = static_cast<FujiNet*>(MemGetSlotParameters(uSlot));
 		if (write) {
-			return pCard->IOWrite0(programcounter, address, value, nCycles);
-		}
-		else {
-			return pCard->IORead0(programcounter, address, nCycles);
+			return pCard->IOWrite0(programCounter, address, value, nCycles);
 		}
 	}
 	return 0;
@@ -256,41 +149,48 @@ BYTE __stdcall c0Handler(WORD programcounter, WORD address, BYTE write, BYTE val
 
 void FujiNet::InitializeIO(LPBYTE pCxRomPeripheral)
 {
-	LogFileOutput("FUJINET InitialiseIO\n");
+	LogFileOutput("FujiNet InitialiseIO\n");
 
-	const DWORD HARDDISK_FW_SIZE = APPLE_SLOT_SIZE;
-
-	// Install firmware into chosen slot
-	BYTE* pData = GetFrame().GetResource(IDR_FUJINET_FW, "FIRMWARE", HARDDISK_FW_SIZE);
-	if (pData == NULL)
+	// Load firmware into chosen slot
+	const BYTE* pData = GetFrame().GetResource(IDR_FUJINET_FW, "FIRMWARE", APPLE_SLOT_SIZE);
+	if (pData == nullptr)
 		return;
 
-	// set 2 locations in firmware that need to know the slot number for reading/writing to the card
-	BYTE loc1_ne = pData[0xFD]; 	// location of where to put $nE, used for backup of zp values
-	BYTE loc2_n0 = pData[0xFE]; 	// location of where to put $n0, used for "(slot),y"
-	BYTE n0 = (((m_slot & 0xff) | 0x08) << 4); // (slot + 8) * 16, giving low byte of $C0n0
-	pData[loc1_ne] = n0 + 0x0E;
-	pData[loc2_n0] = n0;
+	// Copy the data into the destination memory
+	std::memcpy(pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE, pData, APPLE_SLOT_SIZE);
 
-	memcpy(pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE, pData, HARDDISK_FW_SIZE);
+	// Set location in firmware that need to know the slot number for reading/writing to the card
+	const BYTE locN2 = pData[0xFB]; 	// location of where to put $n2
+	const BYTE n2 = (((m_slot & 0xff) | 0x08) << 4) + 0x02; // (slot + 8) * 16 + 2, giving low byte of $C0n2
 
-	RegisterIoHandler(m_slot, c0Handler, c0Handler, nullptr, nullptr, this, nullptr);
+	// Modify the destination memory to hold the slot information needed by the firmware.
+	// The pData memory is R/O, and we get an access violation writing to it, so alter the destination instead.
+	const LPBYTE pDest = pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE;
+	pDest[locN2] = n2;
+
+	RegisterIoHandler(m_slot, nullptr, c0Handler, nullptr, nullptr, this, nullptr);
 }
-
 
 void FujiNet::Update(const ULONG nExecutedCycles)
 {
-	// LogFileOutput("FUJINET Update\n");
+	// LogFileOutput("FujiNet Update\n");
 }
 
 
 void FujiNet::SaveSnapshot(YamlSaveHelper& yamlSaveHelper)
 {
-	LogFileOutput("FUJINET SaveSnapshot\n");
+	LogFileOutput("FujiNet SaveSnapshot\n");
 }
 
 bool FujiNet::LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT version)
 {
-	LogFileOutput("FUJINET LoadSnapshot\n");
+	LogFileOutput("FujiNet LoadSnapshot\n");
 	return true;
+}
+
+void FujiNet::createListener()
+{
+	listener_ = std::make_unique<Listener>("0.0.0.0", 1985);
+	listener_->start();
+	LogFileOutput("FujiNet Created SP over SLIP listener on 0.0.0.0:1985\n");
 }
