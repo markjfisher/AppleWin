@@ -25,10 +25,10 @@ basic   := $E000        ; BASIC INTERPRETER COLD START
 header:
         cpx     #$20
         ldx     #$00
-        cpx     #$83            ; this is normally $03, but using $83 until better SP emulation available
+        cpx     #$03
         cpx     #$00
 
-        ; if we're called directly, or via prodos, just print an error.
+        ; if we're called directly just print an error and drop to basic.
         ; this is a copy of Oliver Schmidt code for Reload Emulator at https://github.com/vsladkov/reload-emulator/pull/1/files#diff-b889f9e1f8b8d8898b043495b2e25bfc19a9b12655456af92ebab9f92c9e20b0
 do_err:
         ldx     loc0
@@ -36,7 +36,8 @@ do_err:
         ldx     loc1
         cpx     mslot
         bne     errexit
-        cpx     #>*
+cn1:
+        cpx     #$00            ; written to by emulator with Cn value for slot
         bne     errexit
         jmp     sloop
 
@@ -46,24 +47,25 @@ errexit:
         jsr     settxt
         jsr     home
         ldx     #$07            ; "FN ERROR"
-:       lda     errtext, x
+cn2:
+:       lda     errtext, x      ; high byte written to by the emulator
         jsr     cout
         dex
         bpl     :-
         jmp     basic
 
-        ; PRODOS entry. Need to understand if this should error or "do nothing" whatever that means.
+        ; PRODOS entry. Just doing this seems fine for now, doesn't crash out with 03 set in marker bytes anymore
 driver:
-        clc
-        bcc     do_err
+        lda     #$00
+        rts
 
 sp_driver:
         ; EVERYTHING is done in Emulator.
-        lda     #magic
+        lda     #magic          ; magic = $65, $02 = value to get things going.
         ; used to locate where the firmware needs to write slot value.
         ; DO NOT PUT ANYTHING BETWEEN LABEL AND "sta $c000"
-slot_write:
-        sta     $c000           ; 00 is overwritten by emulator when loading firmware to correct n0 value for this slot
+n2:
+        sta     $c000           ; 00 is overwritten by emulator when loading firmware to correct n2 value for this slot
 
         ; emulator does everything: getting data from device, writing to memory, fixing return address on stack, setting A/X/Y
 
@@ -74,8 +76,10 @@ errtext:
         .byte 'R'|$80, 'O'|$80, 'R'|$80, 'R'|$80, 'E'|$80, ' '|$80, 'N'|$80, 'F'|$80
 
         ; write data to the end of the block
-        .res    $0100-5-<*
-        .byte   <(slot_write+1) ; low byte of 0xC0n0 address for initiating the SP command
+        .res    $0100-7-<*
+        .byte   <(cn1+1)         ; high byte of 0xCn00, needed in error routine #1
+        .byte   <(cn2+2)         ; high byte of 0xCn00, needed in error routine #2
+        .byte   <(n2+1)         ; low byte of 0xC0n2 address for initiating the SP command
         .byte   $00, $00        ; total blocks, causes status to be called to get value
         .byte   $f7             ; status bits (http://www.easy68k.com/paulrsm/6502/PDOS8TRM.HTM)
         .byte   <driver         ; driver entry point

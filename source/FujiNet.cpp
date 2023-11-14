@@ -113,8 +113,8 @@ BYTE FujiNet::IOWrite0(WORD programCounter, WORD address, BYTE value, ULONG nCyc
 
 void FujiNet::deviceCount(WORD spPayloadLoc) const
 {
-	// Clear the target memory
-	memset(mem + spPayloadLoc, 0, 1024);
+	// Clear the target memory - DO NOT DO THIS, A2 ROM CALLS US. Can we get a size?
+	// memset(mem + spPayloadLoc, 0, 1024);
 
 	// Fill the status information directly into SP payload memory.
 	// The count is from sum of all devices across all Connections
@@ -188,12 +188,18 @@ void FujiNet::InitializeIO(LPBYTE pCxRomPeripheral)
 	std::memcpy(pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE, pData, APPLE_SLOT_SIZE);
 
 	// Set location in firmware that need to know the slot number for reading/writing to the card
+	const BYTE locCN1 = pData[0xF9]; 	// location of where to put $n2
+	const BYTE locCN2 = pData[0xFA]; 	// location of where to put $n2
+	const BYTE cn = ((m_slot & 0xff) | 0xC0); // slot(n) || 0xC0 = 0xCn
+
 	const BYTE locN2 = pData[0xFB]; 	// location of where to put $n2
 	const BYTE n2 = (((m_slot & 0xff) | 0x08) << 4) + 0x02; // (slot + 8) * 16 + 2, giving low byte of $C0n2
 
 	// Modify the destination memory to hold the slot information needed by the firmware.
 	// The pData memory is R/O, and we get an access violation writing to it, so alter the destination instead.
 	const LPBYTE pDest = pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE;
+	pDest[locCN1] = cn;
+	pDest[locCN2] = cn;
 	pDest[locN2] = n2;
 
 	RegisterIoHandler(m_slot, nullptr, c0Handler, nullptr, nullptr, this, nullptr);
