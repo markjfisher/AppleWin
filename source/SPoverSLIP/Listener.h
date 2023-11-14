@@ -24,9 +24,11 @@ public:
 	std::thread create_listener_thread();
 	bool get_is_listening() const { return is_listening_; }
 
-	Connection* find_connection_with_device(int device_id);
+	Connection* find_connection_with_device(int device_id) const;
+	size_t get_total_device_count() const;
+	std::string get_device_name(int device_index) const;
 
-	std::string to_string();
+	std::string to_string() const;
 
 private:
 	std::string ip_address_;

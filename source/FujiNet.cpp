@@ -34,6 +34,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CPU.h"
 #include "Log.h"
 #include "../resource/resource.h"
+#include "SPoverSLIP/Requestor.h"
+#include "SPoverSLIP/StatusRequest.h"
+#include "SPoverSLIP/StatusResponse.h"
 
 const std::string& FujiNet::GetSnapshotCardName()
 {
@@ -107,15 +110,37 @@ BYTE FujiNet::IOWrite0(WORD programCounter, WORD address, BYTE value, ULONG nCyc
 	return 0;
 }
 
-void FujiNet::deviceCount(WORD spPayloadLoc)
+void FujiNet::deviceCount(WORD spPayloadLoc) const
 {
-	// listener_
+	// Clear the target memory
+	memset(mem + spPayloadLoc, 0, 1024);
+
+	// Fill the status information directly into SP payload memory.
+	// The count is from sum of all devices across all Connections
+	const BYTE deviceCount = (BYTE) listener_->get_total_device_count();
+	mem[spPayloadLoc] = deviceCount;
+	mem[spPayloadLoc + 1] = 1 << 6;	// no interrupt
+	mem[spPayloadLoc + 2] = 0x46;   // 0x4D46 == MF for vendor ID
+	mem[spPayloadLoc + 3] = 0x4D;
+	mem[spPayloadLoc + 4] = 0x0A;   // version 1.00 Alpha = $100A
+	mem[spPayloadLoc + 5] = 0x10;
 }
 
-void FujiNet::dib(BYTE unitNumber, WORD spPayloadLoc)
+void FujiNet::dib(BYTE unitNumber, WORD spPayloadLoc) const
 {
+	// send a request for the DIB through the connection
+	const auto connection = listener_->find_connection_with_device(unitNumber);
+	StatusRequest request(Requestor::next_request_number(), unitNumber, 3);	// DIB request
+	const auto response = Requestor::send_request(request, connection);
+	const auto status_response = dynamic_cast<StatusResponse*>(response.get());
+	if (status_response != nullptr)
+	{
+		// copy the response data into the SP payload memory
+
+	}
 }
 
+// https://www.1000bit.it/support/manuali/apple/technotes/smpt/tn.smpt.2.html
 void FujiNet::status(const BYTE unitNumber, const WORD spPayloadLoc, const WORD paramsLoc)
 {
 	const BYTE statusCode = mem[paramsLoc];
