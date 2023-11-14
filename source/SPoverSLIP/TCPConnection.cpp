@@ -51,7 +51,7 @@ void TCPConnection::create_read_channel()
 			do
 			{
 				valread = recv(self->get_socket(), reinterpret_cast<char*>(buffer.data()), buffer.size(), 0);
-				int errsv = errno;
+				const int errsv = errno;
 				if (valread < 0)
 				{
 					// timeout is fine, just reloop.

@@ -69,16 +69,17 @@ void FujiNet::Reset(const bool powerCycle)
 void FujiNet::processSPoverSLIP()
 {
 	LogFileOutput("FujiNet processing SP command\n");
-	// stack pointer location holds the Command
-	WORD rtsLocation = mem[regs.sp + 1] + (mem[regs.sp + 2] << 8) + 1;
-	const BYTE command = mem[rtsLocation];
-	const WORD cmdListLoc = mem[rtsLocation + 1] + (mem[rtsLocation + 2] << 8);
+
+	// stack pointer location holds the data we need to service this request
+	WORD rtsLocation = mem[regs.sp + 1] + (mem[regs.sp + 2] << 8);
+	const BYTE command = mem[rtsLocation + 1];
+	const WORD cmdListLoc = mem[rtsLocation + 2] + (mem[rtsLocation + 3] << 8);
 	// BYTE paramCount = mem[cmdListLoc];
 	const BYTE unitNumber = mem[cmdListLoc + 1];
 	const WORD spPayloadLoc = mem[cmdListLoc + 2] + (mem[cmdListLoc + 3] << 8);
 	const WORD paramsLoc = cmdListLoc + 4;
 
-	// Fix the stack so the RTS in the firmware returns to the instruction after the data (which should be "BNE ERROR")
+	// Fix the stack so the RTS in the firmware returns to the instruction after the data
 	rtsLocation += 3;
 	mem[regs.sp + 1] = rtsLocation & 0xff;
 	mem[regs.sp + 2] = (rtsLocation >> 8) & 0xff;
@@ -128,8 +129,10 @@ void FujiNet::deviceCount(WORD spPayloadLoc) const
 
 void FujiNet::dib(BYTE unitNumber, WORD spPayloadLoc) const
 {
-	// send a request for the DIB through the connection
+	// send a request for the DIB through the connection, if this unit number is connected
 	const auto connection = listener_->find_connection_with_device(unitNumber);
+	if (connection == nullptr) return;
+
 	StatusRequest request(Requestor::next_request_number(), unitNumber, 3);	// DIB request
 	const auto response = Requestor::send_request(request, connection);
 	const auto status_response = dynamic_cast<StatusResponse*>(response.get());
