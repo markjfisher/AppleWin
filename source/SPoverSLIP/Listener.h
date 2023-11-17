@@ -24,17 +24,21 @@ public:
 	std::thread create_listener_thread();
 	bool get_is_listening() const { return is_listening_; }
 
-	Connection* find_connection_with_device(int device_id) const;
-	size_t get_total_device_count() const;
-	std::string get_device_name(int device_index) const;
+	std::pair<uint8_t, std::shared_ptr<Connection>> find_connection_with_device(const uint8_t device_id) const;
 
-	std::string to_string() const;
+	void insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection>& conn) {
+		connection_map_[{start_id, end_id}] = conn;
+	}
+
+	static uint8_t get_total_device_count() { return next_device_id_ - 1; }
 
 private:
 	std::string ip_address_;
 	int port_;
 	std::mutex mtx_;
-	std::vector<std::shared_ptr<Connection>> connections_;
+	std::thread listening_thread_;
+	static uint8_t next_device_id_;
+	std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<Connection>> connection_map_;
 
 	bool is_listening_;
 	void create_connection(int socket);

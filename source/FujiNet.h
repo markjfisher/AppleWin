@@ -45,9 +45,9 @@ public:
     bool LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT version) override;
 
     BYTE IOWrite0(WORD programCounter, WORD address, BYTE value, ULONG nCycles);
-    void deviceCount(WORD spPayloadLoc) const;
-    void dib(BYTE unitNumber, WORD spPayloadLoc) const;
-    void status(BYTE unitNumber, WORD spPayloadLoc, WORD paramsLoc);
+    static void deviceCount(WORD spPayloadLoc);
+    void dib(BYTE unit_number, WORD sp_payload_loc) const;
+    void status(BYTE unitNumber, WORD spPayloadLoc, WORD paramsLoc) const;
     void processSPoverSLIP(void);
 
     // SP over SLIP

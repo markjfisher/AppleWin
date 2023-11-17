@@ -9,9 +9,9 @@ std::vector<uint8_t> StatusResponse::serialize() const
 	data.push_back(this->get_request_sequence_number());
 	data.push_back(this->get_status());
 
-	for (uint8_t status_value : get_status_values())
+	for (uint8_t b : get_data())
 	{
-		data.push_back(status_value);
+		data.push_back(b);
 	}
 	return data;
 }

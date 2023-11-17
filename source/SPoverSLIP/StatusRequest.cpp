@@ -6,7 +6,6 @@
 #include "StatusRequest.h"
 #include "StatusResponse.h"
 #include "SmartPortHandler.h"
-#include "Util.h"
 
 StatusRequest::StatusRequest(uint8_t request_sequence_number, uint8_t sp_unit, uint8_t status_code)
 	: status_code_(status_code)
@@ -23,11 +22,6 @@ std::vector<uint8_t> StatusRequest::serialize() const
 	data.push_back(SP_STATUS);
 	data.push_back(this->get_sp_unit());
 	data.push_back(this->get_status_code());
-
-#ifdef DEBUG
-  std::cout << "Serialised version of StatusRequest:" << std::endl;
-  Util::hex_dump(data);
-#endif
 
 	return data;
 }
@@ -48,7 +42,7 @@ std::unique_ptr<Response> StatusRequest::deserialize(const std::vector<uint8_t>&
 	{
 		for (size_t i = 2; i < data.size(); ++i)
 		{
-			response->add_status_value(data[i]);
+			response->add_data(data[i]);
 		}
 	}
 

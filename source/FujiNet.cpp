@@ -55,6 +55,13 @@ FujiNet::FujiNet(const UINT slot) : Card(CT_FujiNet, slot)
 FujiNet::~FujiNet()
 {
 	LogFileOutput("FujiNet destructor\n");
+	if (listener_ != nullptr)
+	{
+		LogFileOutput("FujiNet dtor, stopping listener\n");
+		listener_->stop();
+		LogFileOutput("FujiNet dtor, ... stopped\n");
+	}
+	listener_.reset();
 }
 
 void FujiNet::Reset(const bool powerCycle)
@@ -68,8 +75,6 @@ void FujiNet::Reset(const bool powerCycle)
 
 void FujiNet::processSPoverSLIP()
 {
-	LogFileOutput("FujiNet processing SP command\n");
-
 	// stack pointer location holds the data we need to service this request
 	WORD rtsLocation = mem[regs.sp + 1] + (mem[regs.sp + 2] << 8);
 	const BYTE command = mem[rtsLocation + 1];
@@ -78,6 +83,8 @@ void FujiNet::processSPoverSLIP()
 	const BYTE unitNumber = mem[cmdListLoc + 1];
 	const WORD spPayloadLoc = mem[cmdListLoc + 2] + (mem[cmdListLoc + 3] << 8);
 	const WORD paramsLoc = cmdListLoc + 4;
+
+	LogFileOutput("FujiNet processing SP command: 0x%02x, unit: 0x%02x, cmdList: 0x%04x, spPayLoad: 0x%04x, p1: 0x%02x\n", command, unitNumber, cmdListLoc, spPayloadLoc, mem[paramsLoc]);
 
 	// Fix the stack so the RTS in the firmware returns to the instruction after the data
 	rtsLocation += 3;
@@ -92,59 +99,81 @@ void FujiNet::processSPoverSLIP()
 		break;
 	}
 
-	// set A/X/Y to 0 and end for now.
-	regs.a = 0;
-	regs.x = 0;
-	regs.y = 0;
 }
 
 BYTE FujiNet::IOWrite0(WORD programCounter, WORD address, BYTE value, ULONG nCycles)
 {
-	LogFileOutput("FujiNet IOWrite0: PC: %02x, address: %02x, value: %d\n", programCounter, address, value);
+	//LogFileOutput("FujiNet IOWrite0: PC: %02x, address: %02x, value: %d\n", programCounter, address, value);
 	const uint8_t loc = address & 0x0f;
 	// Only do something if $65 is sent to address $02
 	if (value == 0x65 && loc == 0x02)
 	{
 		processSPoverSLIP();
 	}
-
 	return 0;
 }
 
-void FujiNet::deviceCount(WORD spPayloadLoc) const
+void FujiNet::deviceCount(WORD spPayloadLoc)
 {
-	// Clear the target memory - DO NOT DO THIS, A2 ROM CALLS US. Can we get a size?
-	// memset(mem + spPayloadLoc, 0, 1024);
-
 	// Fill the status information directly into SP payload memory.
-	// The count is from sum of all devices across all Connections
-	const BYTE deviceCount = (BYTE) listener_->get_total_device_count();
+	// The count is from sum of all devices across all Connections.
+	// TODO: to remove the initial "here are my devices" code, this should change to querying its connections for a count of devices, i.e. do a "0"/"0" request.
+	// TODO: doing this dynamically here ensures we catch any changes to a device, or connections that are lost.
+	const BYTE deviceCount = Listener::get_total_device_count();
 	mem[spPayloadLoc] = deviceCount;
 	mem[spPayloadLoc + 1] = 1 << 6;	// no interrupt
-	mem[spPayloadLoc + 2] = 0x46;   // 0x4D46 == MF for vendor ID
-	mem[spPayloadLoc + 3] = 0x4D;
+	mem[spPayloadLoc + 2] = 0x4D;   // 0x4D46 == MF for vendor ID
+	mem[spPayloadLoc + 3] = 0x46;
 	mem[spPayloadLoc + 4] = 0x0A;   // version 1.00 Alpha = $100A
 	mem[spPayloadLoc + 5] = 0x10;
+	regs.a = 0;
+	regs.x = 6;
+	regs.y = 0;
 }
 
-void FujiNet::dib(BYTE unitNumber, WORD spPayloadLoc) const
+void FujiNet::dib(BYTE unit_number, WORD sp_payload_loc) const
 {
 	// send a request for the DIB through the connection, if this unit number is connected
-	const auto connection = listener_->find_connection_with_device(unitNumber);
-	if (connection == nullptr) return;
+	const auto id_and_connection = listener_->find_connection_with_device(unit_number);
+	if (id_and_connection.second == nullptr)
+	{
+		regs.a = 1;		// TODO: what value should we error with?
+		regs.x = 0;
+		regs.y = 0;
+		return;
+	}
 
-	StatusRequest request(Requestor::next_request_number(), unitNumber, 3);	// DIB request
-	const auto response = Requestor::send_request(request, connection);
+	const auto lower_device_id = id_and_connection.first;
+	const auto connection = id_and_connection.second;
+
+	// convert the unit_number given to the id of the target connection, as we may have more than one connection
+	const auto target_unit_id = static_cast<uint8_t>(unit_number - lower_device_id + 1);
+
+	StatusRequest request(Requestor::next_request_number(), target_unit_id, 3);	// DIB request
+	const auto response = Requestor::send_request(request, connection.get());
 	const auto status_response = dynamic_cast<StatusResponse*>(response.get());
 	if (status_response != nullptr)
 	{
-		// copy the response data into the SP payload memory
-
+		if (status_response->get_status() == 0)
+		{
+			const auto response_size = status_response->get_data().size();
+			// copy the response data into the SP payload memory
+			memcpy(mem + sp_payload_loc, status_response->get_data().data(), response_size);
+			regs.a = 0;
+			regs.x = response_size & 0xff;
+			regs.y = (response_size >> 8) & 0xff;
+		} else
+		{
+			// An error in the response
+			regs.a = status_response->get_status();
+			regs.x = 0;
+			regs.y = 0;
+		}
 	}
 }
 
 // https://www.1000bit.it/support/manuali/apple/technotes/smpt/tn.smpt.2.html
-void FujiNet::status(const BYTE unitNumber, const WORD spPayloadLoc, const WORD paramsLoc)
+void FujiNet::status(const BYTE unitNumber, const WORD spPayloadLoc, const WORD paramsLoc) const
 {
 	const BYTE statusCode = mem[paramsLoc];
 

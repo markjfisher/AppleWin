@@ -7,13 +7,11 @@
 class StatusResponse : public Response
 {
 private:
-	std::vector<uint8_t> status_values_;
+	std::vector<uint8_t> data_;
 
 public:
 	virtual std::vector<uint8_t> serialize() const override;
 
-	// status_values
-	const std::vector<uint8_t>& get_status_values() const { return status_values_; }
-	void set_status_values(const std::vector<uint8_t>& status_values) { status_values_ = status_values; }
-	void add_status_value(uint8_t status_value) { status_values_.push_back(status_value); }
+	const std::vector<uint8_t>& get_data() const { return data_; }
+	void add_data(uint8_t d) { data_.push_back(d); }
 };

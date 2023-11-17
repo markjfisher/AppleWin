@@ -6,16 +6,12 @@
 #include <string>
 #include <cstring>
 #include <thread>
+
+#include "Log.h"
 #include "SLIP.h"
-#include "Util.h"
 
 void TCPConnection::send_data(const std::vector<uint8_t>& data)
 {
-#ifdef DEBUG
-  std::cout << "TCPConnection::send_data, sending data:" << std::endl;
-  Util::hex_dump(data);
-#endif
-
 	if (data.empty())
 	{
 		std::cerr << "TCPConnection::send_data No data was given to send" << std::endl;
@@ -23,11 +19,6 @@ void TCPConnection::send_data(const std::vector<uint8_t>& data)
 	}
 
 	auto slip_data = SLIP::encode(data);
-#ifdef DEBUG
-  std::cout << "TCPConnection::send_data sending:" << std::endl;
-  Util::hex_dump(slip_data);
-#endif
-
 	send(socket_, reinterpret_cast<const char*>(slip_data.data()), slip_data.size(), 0);
 }
 
@@ -38,18 +29,26 @@ void TCPConnection::create_read_channel()
 	{
 		std::vector<uint8_t> complete_data;
 		std::vector<uint8_t> buffer(1024);
+		bool is_initialising = true;
 
 		// Set a timeout on the socket
 		struct timeval timeout;
 		timeout.tv_sec = 10; // 10 second
 		timeout.tv_usec = 0;
-		setsockopt(self->get_socket(), SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+		setsockopt(self->get_socket(), SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
 
-		while (self->is_connected())
+		LogFileOutput("FujiNet TCPConnection::create_read_channel Going into while loop to read data\n");
+		while (self->is_connected() || is_initialising)
 		{
 			int valread = 0;
 			do
 			{
+				if (is_initialising)
+				{
+					is_initialising = false;
+					self->set_is_connected(true);
+				}
+
 				valread = recv(self->get_socket(), reinterpret_cast<char*>(buffer.data()), buffer.size(), 0);
 				const int errsv = errno;
 				if (valread < 0)
@@ -78,19 +77,17 @@ void TCPConnection::create_read_channel()
 
 			if (!complete_data.empty())
 			{
-				std::vector<std::vector<uint8_t>> decoded_packets = SLIP::split_into_packets(
-					complete_data.data(), complete_data.size());
+				LogFileOutput("FujiNet TCPConnection::create_read_channel Got some DATA!\n");
+				std::vector<std::vector<uint8_t>> decoded_packets = SLIP::split_into_packets(complete_data.data(), complete_data.size());
 				if (!decoded_packets.empty())
 				{
 					for (const auto& packet : decoded_packets)
 					{
 						if (!packet.empty())
 						{
-#ifdef DEBUG
-              std::cout << "putting packet in responses map for request id " << static_cast<unsigned int>(packet[0]) << std::endl;
-#endif
 							{
 								std::lock_guard<std::mutex> lock(self->responses_mutex_);
+								LogFileOutput("FujiNet TCPConnection::create_read_channel Adding data to responses against ID: %d\n", static_cast<int>(packet[0]));
 								self->responses_[packet[0]] = packet;
 							}
 							self->response_cv_.notify_all();
@@ -100,16 +97,7 @@ void TCPConnection::create_read_channel()
 				complete_data.clear();
 			}
 		}
+		LogFileOutput("FujiNet TCPConnection::create_read_channel is EXITING\n");
 	});
 	reading_thread.detach();
-}
-
-std::string TCPConnection::to_string()
-{
-	std::stringstream ss;
-	ss << Connection::to_string(); // Include the output of the base class
-	ss << ", TCPConnection specific info: {";
-	ss << "socket = " << socket_;
-	ss << "}";
-	return ss.str();
 }

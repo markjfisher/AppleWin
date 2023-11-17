@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include "SLIP.h"
-#include "Util.h"
 
 std::vector<uint8_t> SLIP::encode(const std::vector<uint8_t>& data)
 {
@@ -33,11 +32,6 @@ std::vector<uint8_t> SLIP::encode(const std::vector<uint8_t>& data)
 
 std::vector<uint8_t> SLIP::decode(const std::vector<uint8_t>& data)
 {
-#ifdef DEBUG
-  std::cout << "SLIP::decode, data:" << std::endl;
-  Util::hex_dump(data);
-#endif
-
 	std::vector<uint8_t> decoded_data;
 	auto bytes_read = data.size();
 
@@ -97,11 +91,6 @@ std::vector<uint8_t> SLIP::decode(const std::vector<uint8_t>& data)
 
 		i++;
 	}
-
-#ifdef DEBUG
-  std::cout << "SLIP::decode, decoded data:" << std::endl;
-  Util::hex_dump(decoded_data);
-#endif
 
 	return decoded_data;
 }

@@ -6,9 +6,13 @@
 #include "Listener.h"
 #include "TCPConnection.h"
 #include "SLIP.h"
-#include "Util.h"
 
 #include "Log.h"
+#include "Requestor.h"
+#include "StatusRequest.h"
+#include "StatusResponse.h"
+
+uint8_t Listener::next_device_id_ = 1;
 
 Listener::~Listener()
 {
@@ -22,6 +26,7 @@ std::thread Listener::create_listener_thread()
 
 void Listener::listener_function()
 {
+	LogFileOutput("Listener::listener_function - RUNNING\n");
 	int server_fd, new_socket;
 	struct sockaddr_in address;
 	int address_length = sizeof(address);
@@ -34,13 +39,12 @@ void Listener::listener_function()
 	}
 
 	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
 	address.sin_port = htons(port_);
 	address.sin_addr.s_addr = inet_addr(ip_address_.c_str());
 
 	if (bind(server_fd, reinterpret_cast<SOCKADDR*>(&address), sizeof(address)) == SOCKET_ERROR)
 	{
-		LogFileOutput("Listener::listener_function - Socket creation failed\n");
+		LogFileOutput("Listener::listener_function - bind failed\n");
 		return;
 	}
 
@@ -52,6 +56,27 @@ void Listener::listener_function()
 
 	while (is_listening_)
 	{
+		fd_set sockSet;
+		FD_ZERO(&sockSet);
+		FD_SET(server_fd, &sockSet);
+
+		timeval timeout;
+		timeout.tv_sec = 2;
+		timeout.tv_usec = 0;
+
+		const int activity = select(0, &sockSet, nullptr, nullptr, &timeout);
+
+		if (activity == SOCKET_ERROR) {
+			LogFileOutput("Listener::listener_function - select failed\n");
+			is_listening_ = false;
+			break;
+		}
+
+		if (activity == 0) {
+			// timeout occurred, no client connection. Still need to check is_listening_
+			continue;
+		}
+
 		if ((new_socket = accept(server_fd, reinterpret_cast<SOCKADDR*>(&address), &address_length)) == INVALID_SOCKET)
 		{
 			LogFileOutput("Listener::listener_function - accept failed\n");
@@ -59,11 +84,7 @@ void Listener::listener_function()
 			break;
 		}
 
-		// do it in a thread so we can respond to more requests as soon as possible
-		std::thread([this, new_socket]()
-		{
-			create_connection(new_socket);
-		}).detach();
+		create_connection(new_socket);
 	}
 
 	LogFileOutput("Listener::listener_function - listener closing down\n");
@@ -73,64 +94,30 @@ void Listener::listener_function()
 }
 
 // Creates a Connection object, which is how a SP will register itself with our listener.
-// When it connects, it tells us all the available unit IDs and names available to service requests.
-// That connection will then be used to send requests to, and get responses back from.
 void Listener::create_connection(int socket)
 {
-	std::vector<uint8_t> complete_data;
-	std::vector<uint8_t> buffer(1024);
+	// New implementation:
+	//  - Send Status Request for Device Count
+	//  - Add device_id range to the connection_map_ for this connection.
+	// I did consider doing DIB here, but A2 OS can do that against each device ID as it needs it.
 
-	int bytes_read;
-	do
+	const std::shared_ptr<Connection> conn = std::make_shared<TCPConnection>(socket);
+	conn->create_read_channel();
+	while (!conn->is_connected()) {}
+
+	StatusRequest request(Requestor::next_request_number(), 0, 0);	// Device Count Request
+	const auto response = Requestor::send_request(request, conn.get());
+	const auto status_response = dynamic_cast<StatusResponse*>(response.get());
+	if (status_response != nullptr)
 	{
-		bytes_read = recv(socket, reinterpret_cast<char*>(buffer.data()), buffer.size(), 0);
-		if (bytes_read > 0)
+		if (status_response->get_status() == 0 && status_response->get_data()[0] > 0)
 		{
-			complete_data.insert(complete_data.end(), buffer.begin(), buffer.begin() + bytes_read);
-		}
-	}
-	while (bytes_read == 1024);
-
-#ifdef DEBUG
-	std::cout << "capability data from incoming connection:" << std::endl;
-	Util::hex_dump(complete_data);
-#endif
-
-	// for every slip packet we received (probably only 1 as this is an initial connection) 
-	// which are pairs of int, c-string (ID, Name (0 terminated))
-	if (!complete_data.empty())
-	{
-		const std::vector<std::vector<uint8_t>> packets =
-			SLIP::split_into_packets(complete_data.data(), complete_data.size());
-
-		if (!packets.empty())
-		{
-			// We have at least some data that might pass as a capability, let's create the Connection object, and use it to parse the data
-			const std::shared_ptr<Connection> conn = std::make_shared<TCPConnection>(socket);
-			for (const auto& packet : packets)
-			{
-#ifdef DEBUG
-				std::cout << ".. packet:" << std::endl;
-				Util::hex_dump(packet);
-#endif
-
-				if (!packet.empty())
-				{
-					// create devices from the data
-					conn->add_devices(packet);
-				}
-			}
-			if (!conn->get_devices().empty())
-			{
-				// this connection is a keeper! it has some devices on it.
-				conn->set_is_connected(true);
-				conn->create_read_channel();
-				// create a closure, so the mutex is released as it goes out of scope
-				{
-					std::lock_guard<std::mutex> lock(mtx_);
-					connections_.push_back(conn);
-				} // mtx_ unlocked here
-			}
+			// Read the device count from the first byte of data, and save the connection so it persists
+			const auto device_count = status_response->get_data()[0];
+			const auto start_id = next_device_id_;
+			const auto end_id = static_cast<uint8_t>(start_id + device_count - 1);
+			next_device_id_ = end_id + 1;
+			connection_map_[{start_id, end_id}] = conn;
 		}
 	}
 }
@@ -138,61 +125,30 @@ void Listener::create_connection(int socket)
 void Listener::start()
 {
 	is_listening_ = true;
-	std::thread(&Listener::listener_function, this).detach();
+	listening_thread_ = std::thread(&Listener::listener_function, this);
 }
 
 void Listener::stop()
 {
-	is_listening_ = false;
+	LogFileOutput("Listener::stop()\n");
+	if (is_listening_)
+	{
+		is_listening_ = false;
+		LogFileOutput("Listener::stop() ... joining listener until it stops\n");
+		listening_thread_.join();
+	}
+	LogFileOutput("Listener::stop() ... finished\n");
 }
 
-Connection* Listener::find_connection_with_device(int device_id) const
+// Returns the lower bound of the device id, and connection.
+std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_device(const uint8_t device_id) const
 {
-	for (const auto& connection : connections_)
-	{
-		if (connection->find_device(device_id) != nullptr)
-		{
-			return connection.get();
+	std::pair<uint8_t, std::shared_ptr<Connection>> result;
+	for (const auto& kv : connection_map_) {
+		if (device_id >= kv.first.first && device_id <= kv.first.second) {
+			result = std::make_pair(kv.first.first, kv.second);
+			break;
 		}
 	}
-	return nullptr;
-}
-
-size_t Listener::get_total_device_count() const {
-	size_t total = 0;
-	for (const auto& connection : connections_) {
-		total += connection->get_devices().size();
-	}
-	return total;
-}
-
-std::string Listener::get_device_name(const int device_index) const {
-	for (const auto& connection : connections_) {
-		const auto& devices = connection->get_devices();
-		for (const auto& device : devices) {
-			if (device.device_index == device_index) {
-				return device.capability.name;
-			}
-		}
-	}
-	return ""; // Return an empty string if no device with the given index is found
-}
-
-std::string Listener::to_string() const
-{
-	std::stringstream ss;
-	ss << "Listener: ip_address = " << ip_address_ << ", port = " << port_ << ", is_listening = " << (
-		is_listening_ ? "true" : "false") << ", connections = [";
-	for (const auto& connection : connections_)
-	{
-		ss << connection->to_string() << ", ";
-	}
-	std::string str = ss.str();
-	if (!connections_.empty())
-	{
-		// Remove the last comma and space
-		str = str.substr(0, str.size() - 2);
-	}
-	str += "]";
-	return str;
+	return result;
 }

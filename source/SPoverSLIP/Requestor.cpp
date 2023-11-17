@@ -8,15 +8,8 @@ uint8_t Requestor::request_number_ = 0;
 
 std::unique_ptr<Response> Requestor::send_request(Request& request, Connection* connection)
 {
-#ifdef DEBUG
-  std::cout << "Requestor::send_request, request: " << request << std::endl;
-#endif
-
-	auto device_id = request.get_sp_unit();
-
-	// The request's device_id given needs to map back to the unit_id of the target
-	auto unit_id = connection->get_unit_id_by_device_index(device_id);
-	request.set_sp_unit(unit_id);
+	const auto device_id = request.get_sp_unit();
+	request.set_sp_unit(device_id);
 
 	// Send the serialized request
 	connection->send_data(request.serialize());

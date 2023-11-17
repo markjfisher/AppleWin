@@ -96,7 +96,6 @@
     <ClInclude Include="source\SPoverSLIP\StatusRequest.h" />
     <ClInclude Include="source\SPoverSLIP\StatusResponse.h" />
     <ClInclude Include="source\SPoverSLIP\TCPConnection.h" />
-    <ClInclude Include="source\SPoverSLIP\Util.h" />
     <ClInclude Include="source\Harddisk.h" />
     <ClInclude Include="source\Interface.h" />
     <ClInclude Include="source\Joystick.h" />
@@ -198,7 +197,6 @@
     <ClCompile Include="source\SPoverSLIP\StatusRequest.cpp" />
     <ClCompile Include="source\SPoverSLIP\StatusResponse.cpp" />
     <ClCompile Include="source\SPoverSLIP\TCPConnection.cpp" />
-    <ClCompile Include="source\SPoverSLIP\Util.cpp" />
     <ClCompile Include="source\MockingboardCardManager.cpp" />
     <ClCompile Include="source\RGBMonitor.cpp" />
     <ClCompile Include="source\SAM.cpp" />

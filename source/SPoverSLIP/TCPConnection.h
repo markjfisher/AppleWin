@@ -17,8 +17,6 @@ public:
 	int get_socket() const { return socket_; }
 	void set_socket(int socket) { this->socket_ = socket; }
 
-	std::string to_string() override;
-
 private:
 	int socket_;
 };
