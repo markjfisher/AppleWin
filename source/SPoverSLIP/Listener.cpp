@@ -93,7 +93,7 @@ void Listener::listener_function()
 	WSACleanup();
 }
 
-// Creates a Connection object, which is how a SP will register itself with our listener.
+// Creates a Connection object, which is how SP device(s) will register itself with our listener.
 void Listener::create_connection(int socket)
 {
 	// New implementation:

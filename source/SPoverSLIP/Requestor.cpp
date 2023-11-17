@@ -17,7 +17,7 @@ std::unique_ptr<Response> Requestor::send_request(Request& request, Connection* 
 	std::vector<uint8_t> response_data;
 	try
 	{
-		response_data = connection->wait_for_response(request.get_request_sequence_number(), std::chrono::seconds(20));
+		response_data = connection->wait_for_response(request.get_request_sequence_number(), std::chrono::seconds(5));
 	}
 	catch (const std::runtime_error& e)
 	{

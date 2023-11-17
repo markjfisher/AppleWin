@@ -21,7 +21,7 @@ basic   := $E000        ; BASIC INTERPRETER COLD START
 ; this is fake and just needed for size calculation at the end. everything is relative
         .org $c000
 
-; smartport header, with adjusted 3rd byte to stop boot up sequence detecting it (TODO: fix this)
+; smartport header
 header:
         cpx     #$20
         ldx     #$00
@@ -54,7 +54,7 @@ cn2:
         bpl     :-
         jmp     basic
 
-        ; PRODOS entry. Just doing this seems fine for now, doesn't crash out with 03 set in marker bytes anymore
+        ; PRODOS entry
 driver:
         lda     #$00
         rts

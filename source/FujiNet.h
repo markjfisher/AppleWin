@@ -3,16 +3,10 @@
 
 #include "Card.h"
 
-#include <vector>
 #include <memory>
-#include <map>
-#include "W5100.h"
-#include "SPoverSLIP/Listener.h"
 
-/*
-* Documentation from
-*
-*/
+#include "CPU.h"
+#include "SPoverSLIP/Listener.h"
 
 enum
 {
@@ -35,7 +29,7 @@ public:
     static const std::string& GetSnapshotCardName();
 
     explicit FujiNet(const UINT slot);
-    ~FujiNet();
+    ~FujiNet() override;
 
     void Destroy() override;
     void InitializeIO(LPBYTE pCxRomPeripheral) override;
@@ -44,14 +38,19 @@ public:
     void SaveSnapshot(YamlSaveHelper& yamlSaveHelper) override;
     bool LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT version) override;
 
-    BYTE IOWrite0(WORD programCounter, WORD address, BYTE value, ULONG nCycles);
-    static void deviceCount(WORD spPayloadLoc);
-    void dib(BYTE unit_number, WORD sp_payload_loc) const;
-    void status(BYTE unitNumber, WORD spPayloadLoc, WORD paramsLoc) const;
-    void processSPoverSLIP();
+	BYTE io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCycles) const;
+	static void device_count(WORD sp_payload_loc);
+    void process_sp_over_slip() const;
+    static void status(BYTE unit_number, Connection* connection, WORD sp_payload_loc, BYTE status_code);
+    static void control(BYTE unit_number, Connection* connection, WORD sp_payload_loc, BYTE control_code);
 
-    // SP over SLIP
-    void createListener();
+    static void set_processor_status(const uint8_t flags) { regs.ps |= flags; }
+    static void unset_processor_status(const uint8_t flags) { regs.ps &= (0xFF - flags); }
+    // if condition is true then set the flags given, else remove them.
+    static void update_processor_status(const bool condition, const uint8_t flags) { condition ? set_processor_status(flags) : unset_processor_status(flags); }
+
+	// SP over SLIP
+    void create_listener();
 
 private:
     // SP over SLIP

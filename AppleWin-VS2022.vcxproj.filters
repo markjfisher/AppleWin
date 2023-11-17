@@ -282,6 +282,8 @@
     <ClCompile Include="source\SPoverSLIP\StatusRequest.cpp" />
     <ClCompile Include="source\SPoverSLIP\StatusResponse.cpp" />
     <ClCompile Include="source\SPoverSLIP\TCPConnection.cpp" />
+    <ClCompile Include="source\SPoverSLIP\ControlRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\ControlResponse.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\CommonVICE\6510core.h">
@@ -635,10 +637,12 @@
     <ClInclude Include="source\SPoverSLIP\Request.h" />
     <ClInclude Include="source\SPoverSLIP\Requestor.h" />
     <ClInclude Include="source\SPoverSLIP\Response.h" />
-    <ClInclude Include="source\SPoverSLIP\SmartPortHandler.h" />
+    <ClInclude Include="source\SPoverSLIP\SmartPortCodes.h" />
     <ClInclude Include="source\SPoverSLIP\StatusRequest.h" />
     <ClInclude Include="source\SPoverSLIP\StatusResponse.h" />
     <ClInclude Include="source\SPoverSLIP\TCPConnection.h" />
+    <ClInclude Include="source\SPoverSLIP\ControlRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\ControlResponse.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\Applewin.bmp">

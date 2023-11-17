@@ -4,10 +4,11 @@
 #include <stdexcept>
 
 #include "StatusRequest.h"
-#include "StatusResponse.h"
-#include "SmartPortHandler.h"
 
-StatusRequest::StatusRequest(uint8_t request_sequence_number, uint8_t sp_unit, uint8_t status_code)
+#include "SmartPortCodes.h"
+#include "StatusResponse.h"
+
+StatusRequest::StatusRequest(const uint8_t request_sequence_number, const uint8_t sp_unit, const uint8_t status_code)
 	: status_code_(status_code)
 {
 	set_request_sequence_number(request_sequence_number);
@@ -31,10 +32,10 @@ std::unique_ptr<Response> StatusRequest::deserialize(const std::vector<uint8_t>&
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize StatusRequest");
+		throw std::runtime_error("Not enough data to deserialize StatusResponse");
 	}
 
-	std::unique_ptr<StatusResponse> response = std::make_unique<StatusResponse>();
+	auto response = std::make_unique<StatusResponse>();
 	response->set_request_sequence_number(data[0]);
 	response->set_status(data[1]);
 

@@ -17,7 +17,7 @@ void TCPConnection::send_data(const std::vector<uint8_t>& data)
 		return;
 	}
 
-	auto slip_data = SLIP::encode(data);
+	const auto slip_data = SLIP::encode(data);
 	send(socket_, reinterpret_cast<const char*>(slip_data.data()), slip_data.size(), 0);
 }
 
@@ -36,7 +36,6 @@ void TCPConnection::create_read_channel()
 		timeout.tv_usec = 0;
 		setsockopt(self->get_socket(), SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
 
-		LogFileOutput("FujiNet TCPConnection::create_read_channel Going into while loop to read data\n");
 		while (self->is_connected() || is_initialising)
 		{
 			int valread = 0;
@@ -58,8 +57,7 @@ void TCPConnection::create_read_channel()
 						continue;
 					}
 					// otherwise it was a genuine error.
-					std::cerr << "Error in read thread for connection, errno: " << errsv << " = " << strerror(errsv) <<
-						std::endl;
+					std::cerr << "Error in read thread for connection, errno: " << errsv << " = " << strerror(errsv) << std::endl;
 					self->set_is_connected(false);
 				}
 				if (valread == 0)
@@ -76,7 +74,6 @@ void TCPConnection::create_read_channel()
 
 			if (!complete_data.empty())
 			{
-				LogFileOutput("FujiNet TCPConnection::create_read_channel Got some DATA!\n");
 				std::vector<std::vector<uint8_t>> decoded_packets = SLIP::split_into_packets(complete_data.data(), complete_data.size());
 				if (!decoded_packets.empty())
 				{
@@ -86,7 +83,6 @@ void TCPConnection::create_read_channel()
 						{
 							{
 								std::lock_guard<std::mutex> lock(self->responses_mutex_);
-								LogFileOutput("FujiNet TCPConnection::create_read_channel Adding data to responses against ID: %d\n", static_cast<int>(packet[0]));
 								self->responses_[packet[0]] = packet;
 							}
 							self->response_cv_.notify_all();
