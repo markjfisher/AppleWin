@@ -1,13 +1,12 @@
 #pragma once
 
 #include <vector>
+#include <atomic>
 #include <map>
 #include <cstdint>
-#include <string>
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
-#include <sstream>
 
 class Connection
 {
@@ -23,11 +22,14 @@ public:
 	std::vector<uint8_t> wait_for_response(uint8_t request_id, std::chrono::seconds timeout);
 	std::vector<uint8_t> wait_for_request();
 
+	void join();
+
 private:
-	bool is_connected_ = false;
+	std::atomic<bool> is_connected_{false};
 
 protected:
 	std::map<uint8_t, std::vector<uint8_t>> responses_;
+	std::thread reading_thread_;
 
 	std::mutex responses_mutex_;
 	std::condition_variable response_cv_;

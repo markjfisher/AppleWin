@@ -29,3 +29,11 @@ std::vector<uint8_t> Connection::wait_for_request()
 
 	return request_data;
 }
+
+void Connection::join()
+{
+	if (reading_thread_.joinable())
+	{
+		reading_thread_.join();
+	}
+}

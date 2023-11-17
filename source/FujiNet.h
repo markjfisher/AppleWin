@@ -35,9 +35,9 @@ public:
     static const std::string& GetSnapshotCardName();
 
     explicit FujiNet(const UINT slot);
-    ~FujiNet() override;
+    ~FujiNet();
 
-    void Destroy(void) override {}
+    void Destroy() override;
     void InitializeIO(LPBYTE pCxRomPeripheral) override;
     void Reset(const bool powerCycle) override;
     void Update(const ULONG nExecutedCycles) override;
@@ -48,15 +48,12 @@ public:
     static void deviceCount(WORD spPayloadLoc);
     void dib(BYTE unit_number, WORD sp_payload_loc) const;
     void status(BYTE unitNumber, WORD spPayloadLoc, WORD paramsLoc) const;
-    void processSPoverSLIP(void);
+    void processSPoverSLIP();
 
     // SP over SLIP
     void createListener();
 
 private:
-    // Buffer for data between "card" and Fujinet
-    BYTE buffer[1024];
-
     // SP over SLIP
     std::unique_ptr<Listener> listener_;
 };

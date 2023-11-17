@@ -3,7 +3,6 @@
 #include "TCPConnection.h"
 
 #include <iostream>
-#include <string>
 #include <cstring>
 #include <thread>
 
@@ -25,7 +24,7 @@ void TCPConnection::send_data(const std::vector<uint8_t>& data)
 void TCPConnection::create_read_channel()
 {
 	// Start a new thread to listen for incoming data
-	std::thread reading_thread([self = shared_from_this()]()
+	reading_thread_ = std::thread([self = shared_from_this()]()
 	{
 		std::vector<uint8_t> complete_data;
 		std::vector<uint8_t> buffer(1024);
@@ -33,7 +32,7 @@ void TCPConnection::create_read_channel()
 
 		// Set a timeout on the socket
 		struct timeval timeout;
-		timeout.tv_sec = 10; // 10 second
+		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
 		setsockopt(self->get_socket(), SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
 
@@ -97,7 +96,6 @@ void TCPConnection::create_read_channel()
 				complete_data.clear();
 			}
 		}
-		LogFileOutput("FujiNet TCPConnection::create_read_channel is EXITING\n");
+		LogFileOutput("FujiNet TCPConnection::create_read_channel - thread is EXITING\n");
 	});
-	reading_thread.detach();
 }

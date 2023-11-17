@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Interface.h"
 #include "../Registry.h"
 
-#include "StrFormat.h"
 #include "Memory.h"
 #include "CPU.h"
 #include "Log.h"
@@ -256,4 +255,12 @@ void FujiNet::createListener()
 	listener_ = std::make_unique<Listener>("0.0.0.0", 1985);
 	listener_->start();
 	LogFileOutput("FujiNet Created SP over SLIP listener on 0.0.0.0:1985\n");
+}
+
+void FujiNet::Destroy()
+{
+	if (listener_ != nullptr)
+	{
+		listener_->stop();
+	}
 }

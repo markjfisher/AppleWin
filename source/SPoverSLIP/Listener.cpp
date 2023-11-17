@@ -133,7 +133,15 @@ void Listener::stop()
 	LogFileOutput("Listener::stop()\n");
 	if (is_listening_)
 	{
+		// Give our own thread time to stop while we stop the connections.
 		is_listening_ = false;
+
+		for (auto& pair : connection_map_)
+		{
+			const auto& connection = pair.second;
+			connection->set_is_connected(false);
+			connection->join();
+		}
 		LogFileOutput("Listener::stop() ... joining listener until it stops\n");
 		listening_thread_.join();
 	}
