@@ -6,11 +6,10 @@
 
 uint8_t Requestor::request_number_ = 0;
 
-std::unique_ptr<Response> Requestor::send_request(Request& request, Connection* connection)
-{
-	const auto device_id = request.get_sp_unit();
-	request.set_sp_unit(device_id);
+Requestor::Requestor() = default;
 
+std::unique_ptr<Response> Requestor::send_request(const Request& request, Connection* connection)
+{
 	// Send the serialized request
 	connection->send_data(request.serialize());
 

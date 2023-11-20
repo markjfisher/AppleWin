@@ -1,30 +1,23 @@
 #include "StdAfx.h"
 
-#include <iostream>
 #include <stdexcept>
 
-#include "StatusRequest.h"
-
 #include "SmartPortCodes.h"
+#include "StatusRequest.h"
 #include "StatusResponse.h"
 
 StatusRequest::StatusRequest(const uint8_t request_sequence_number, const uint8_t sp_unit, const uint8_t status_code)
-	: status_code_(status_code)
-{
-	set_request_sequence_number(request_sequence_number);
-	set_command_number(SP_STATUS);
-	set_sp_unit(sp_unit);
-}
+	: Request(request_sequence_number, SP_STATUS, sp_unit), status_code_(status_code) {}
 
 std::vector<uint8_t> StatusRequest::serialize() const
 {
-	std::vector<uint8_t> data;
-	data.push_back(this->get_request_sequence_number());
-	data.push_back(SP_STATUS);
-	data.push_back(this->get_sp_unit());
-	data.push_back(this->get_status_code());
+	std::vector<uint8_t> request_data;
+	request_data.push_back(this->get_request_sequence_number());
+	request_data.push_back(this->get_command_number());
+	request_data.push_back(this->get_sp_unit());
+	request_data.push_back(this->get_status_code());
 
-	return data;
+	return request_data;
 }
 
 // This is for the requestor to easily create the correct response type from the Responder's return value.
@@ -35,9 +28,7 @@ std::unique_ptr<Response> StatusRequest::deserialize(const std::vector<uint8_t>&
 		throw std::runtime_error("Not enough data to deserialize StatusResponse");
 	}
 
-	auto response = std::make_unique<StatusResponse>();
-	response->set_request_sequence_number(data[0]);
-	response->set_status(data[1]);
+	auto response = std::make_unique<StatusResponse>(data[0], data[1]);
 
 	if (response->get_status() == 0 && data.size() > 2)
 	{

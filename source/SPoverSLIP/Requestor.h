@@ -9,11 +9,10 @@
 class Requestor
 {
 public:
-	Requestor() = default;
+	Requestor();
 
 	// The Request's deserialize function will always return a Response, e.g. StatusRequest -> StatusResponse
-	// The request will be mutated 
-	static std::unique_ptr<Response> send_request(Request& request, Connection* connection);
+	static std::unique_ptr<Response> send_request(const Request& request, Connection* connection);
 	static uint8_t next_request_number();
 
 private:

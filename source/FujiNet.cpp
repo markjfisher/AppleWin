@@ -33,11 +33,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CPU.h"
 #include "Log.h"
 #include "../resource/resource.h"
+#include "SPoverSLIP/CloseRequest.h"
+#include "SPoverSLIP/CloseResponse.h"
 #include "SPoverSLIP/ControlRequest.h"
 #include "SPoverSLIP/ControlResponse.h"
+#include "SPoverSLIP/FormatRequest.h"
+#include "SPoverSLIP/FormatResponse.h"
+#include "SPoverSLIP/InitRequest.h"
+#include "SPoverSLIP/InitResponse.h"
+#include "SPoverSLIP/OpenRequest.h"
+#include "SPoverSLIP/OpenResponse.h"
+#include "SPoverSLIP/ReadBlockRequest.h"
+#include "SPoverSLIP/ReadBlockResponse.h"
+#include "SPoverSLIP/ReadRequest.h"
+#include "SPoverSLIP/ReadResponse.h"
+#include "SPoverSLIP/ResetRequest.h"
+#include "SPoverSLIP/ResetResponse.h"
 #include "SPoverSLIP/Requestor.h"
 #include "SPoverSLIP/StatusRequest.h"
 #include "SPoverSLIP/StatusResponse.h"
+#include "SPoverSLIP/WriteBlockRequest.h"
+#include "SPoverSLIP/WriteBlockResponse.h"
+#include "SPoverSLIP/WriteRequest.h"
+#include "SPoverSLIP/WriteResponse.h"
 
 const std::string& FujiNet::GetSnapshotCardName()
 {
@@ -72,7 +90,7 @@ void FujiNet::Reset(const bool powerCycle)
 	}
 }
 
-void FujiNet::process_sp_over_slip() const
+void FujiNet::process_sp_over_slip()
 {
 	// stack pointer location holds the data we need to service this request
 	WORD rts_location = mem[regs.sp + 1] + (mem[regs.sp + 2] << 8);
@@ -117,8 +135,35 @@ void FujiNet::process_sp_over_slip() const
 	case SP_CMD_STATUS:
 		status(target_unit_id, connection, sp_payload_loc, mem[params_loc]);
 		break;
+	case SP_CMD_READBLOCK:
+		read_block(target_unit_id, connection, sp_payload_loc, params_loc);
+		break;
+	case SP_CMD_WRITEBLOCK:
+		write_block(target_unit_id, connection, sp_payload_loc, params_loc);
+		break;
+	case SP_CMD_FORMAT:
+		format(target_unit_id, connection);
+		break;
 	case SP_CMD_CONTROL:
 		control(target_unit_id, connection, sp_payload_loc, mem[params_loc]);
+		break;
+	case SP_CMD_INIT:
+		init(target_unit_id, connection);
+		break;
+	case SP_CMD_OPEN:
+		open(target_unit_id, connection);
+		break;
+	case SP_CMD_CLOSE:
+		close(target_unit_id, connection);
+		break;
+	case SP_CMD_READ:
+		read(target_unit_id, connection, sp_payload_loc, params_loc);
+		break;
+	case SP_CMD_WRITE:
+		write(target_unit_id, connection, sp_payload_loc, params_loc);
+		break;
+	case SP_CMD_RESET:
+		reset(target_unit_id, connection);
 		break;
 	default:
 		break;
@@ -126,7 +171,7 @@ void FujiNet::process_sp_over_slip() const
 
 }
 
-BYTE FujiNet::io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCycles) const
+BYTE FujiNet::io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCycles)
 {
 	const uint8_t loc = address & 0x0f;
 	// Only do something if $65 is sent to address $02
@@ -156,89 +201,128 @@ void FujiNet::device_count(WORD sp_payload_loc)
 	set_processor_status(AF_ZERO);
 }
 
-// https://www.1000bit.it/support/manuali/apple/technotes/smpt/tn.smpt.2.html
-void FujiNet::status(BYTE unit_number, Connection* connection, WORD sp_payload_loc, BYTE status_code)
+void FujiNet::read_block(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
 {
-	// convert the unit_number given to the id of the target connection, as we may have more than one connection
-	const auto target_unit_id = static_cast<uint8_t>(unit_number);
+	ReadBlockRequest request(Requestor::next_request_number(), unit_number);
+	// Assume that (cmd_list_loc + 4 == params_loc) holds 3 bytes for the block number. If it's in the payload, this is wrong and will have to be fixed.
+	request.set_block_number_from_ptr(mem, params_loc);
+	auto response = Requestor::send_request(request, connection);
 
-	StatusRequest request(Requestor::next_request_number(), target_unit_id, status_code);
-	const auto response = Requestor::send_request(request, connection);
-	const auto status_response = dynamic_cast<StatusResponse*>(response.get());
-	if (status_response != nullptr)
-	{
-		if (status_response->get_status() == 0)
-		{
-			const auto response_size = status_response->get_data().size();
-			// copy the response data into the SP payload memory
-			memcpy(mem + sp_payload_loc, status_response->get_data().data(), response_size);
-			regs.a = 0;
-			regs.x = response_size & 0xff;
-			regs.y = (response_size >> 8) & 0xff;
-			set_processor_status(AF_ZERO);
-		} else
-		{
-			// An error in the response
-			regs.a = status_response->get_status();
-			regs.x = 0;
-			regs.y = 0;
-			unset_processor_status(AF_ZERO);
-		}
-	}
-	else
-	{
-		// An error trying to do the request, as there was no response
-		regs.a = 1;		// TODO: what error should we return?
+	handle_response<ReadBlockResponse>(std::move(response), [this, sp_payload_loc](const ReadBlockResponse* rbr) {
+		memcpy(mem + sp_payload_loc, rbr->get_block_data().data(), 512);
+		regs.a = 0;
 		regs.x = 0;
-		regs.y = 0;
-		unset_processor_status(AF_ZERO);
-	}
+		regs.y = 2; // 512 bytes
+	});
 }
 
-void FujiNet::control(BYTE unit_number, Connection* connection, WORD sp_payload_loc, BYTE control_code)
+void FujiNet::write_block(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
 {
-	// CONTROL COMMAND (READ FROM PAYLOAD, NO WRITE BACK FOR FIRMWARE) [total bytes in Payload = 2 + Length given in 0/1]
-	// 00 : Length (lo)
-	// 01 : Length (hi) (Length = device spec size + 1 for nul + 2 for the mode/translation bytes. does not include 2 bytes for length data itself)
-	// 02 : Mode (e.g. R/W = $0C)
-	// 03 : Translation (0 = None, etc)
-	// 04 .. 04 + (Len - 2) = nul terminated Device Spec
+	WriteBlockRequest request(Requestor::next_request_number(), unit_number);
+	// Assume that (cmd_list_loc + 4 == params_loc) holds 3 bytes for the block number. The payload contains the data to write
+	request.set_block_number_from_ptr(mem, params_loc);
+	request.set_block_data_from_ptr(mem, sp_payload_loc);
 
+	auto response = Requestor::send_request(request, connection);
+	handle_simple_response<WriteBlockResponse>(std::move(response));
+}
+
+void FujiNet::read(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
+{
+	ReadRequest request(Requestor::next_request_number(), unit_number);
+	request.set_byte_count_from_ptr(mem, params_loc);
+	request.set_address_from_ptr(mem, params_loc + 2); // move along by byte_count size. would be better to get its size rather than hard code it here.
+	auto response = Requestor::send_request(request, connection);
+
+	handle_response<ReadResponse>(std::move(response), [sp_payload_loc](const ReadResponse* rr) {
+		const auto response_size = rr->get_data().size();
+		memcpy(mem + sp_payload_loc, rr->get_data().data(), response_size);
+		regs.a = 0;
+		regs.x = response_size & 0xff;
+		regs.y = (response_size >> 8) & 0xff;
+	});
+}
+
+void FujiNet::write(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
+{
+	WriteRequest request(Requestor::next_request_number(), unit_number);
+	request.set_byte_count_from_ptr(mem, params_loc);
+	request.set_address_from_ptr(mem, params_loc + 2); // move along by byte_count size. would be better to get its size rather than hard code it here.
+	const auto byte_count = request.get_byte_count();
+	const auto write_length = byte_count[0] + (byte_count[1] << 8);
+	request.set_data_from_ptr(mem, sp_payload_loc, write_length);
+
+	auto response = Requestor::send_request(request, connection);
+	handle_simple_response<WriteResponse>(std::move(response));
+}
+
+void FujiNet::status(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const BYTE status_code)
+{
+	// see https://www.1000bit.it/support/manuali/apple/technotes/smpt/tn.smpt.2.html
+	const StatusRequest request(Requestor::next_request_number(), unit_number, status_code);
+	auto response = Requestor::send_request(request, connection);
+	handle_response<StatusResponse>(std::move(response), [sp_payload_loc](const StatusResponse* sr) {
+		const auto response_size = sr->get_data().size();
+		memcpy(mem + sp_payload_loc, sr->get_data().data(), response_size);
+		regs.a = 0;
+		regs.x = response_size & 0xff;
+		regs.y = (response_size >> 8) & 0xff;
+	});
+}
+
+void FujiNet::control(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const BYTE control_code)
+{
 	const auto length = mem[sp_payload_loc] + (mem[sp_payload_loc + 1] << 8) + 2;
 	uint8_t* start_ptr = &mem[sp_payload_loc];
 	std::vector<uint8_t> payload(start_ptr, start_ptr + length);
 
-	ControlRequest request(Requestor::next_request_number(), unit_number, control_code, payload);
-	const auto response = Requestor::send_request(request, connection);
-	const auto control_response = dynamic_cast<ControlResponse*>(response.get());
-
-	if (control_response != nullptr)
-	{
-		const BYTE status = control_response->get_status();
-		// There's only a status in a control response. Where does it go?
-		regs.a = status;
-		regs.x = 0;
-		regs.y = 0;
-		// set/unset ZERO flag according to status value
-		update_processor_status(status == 0, AF_ZERO);
-
-	}
-	else
-	{
-		// An error trying to do the request, as there was no response
-		regs.a = 1;		// TODO: what error should we return?
-		regs.x = 0;
-		regs.y = 0;
-		unset_processor_status(AF_ZERO);
-	}
+	const ControlRequest request(Requestor::next_request_number(), unit_number, control_code, payload);
+	auto response = Requestor::send_request(request, connection);
+	handle_simple_response<ControlResponse>(std::move(response));
 }
 
-BYTE __stdcall c0Handler(WORD programCounter, WORD address, BYTE write, BYTE value, ULONG nCycles)
+void FujiNet::init(const BYTE unit_number, Connection* connection)
+{
+	const InitRequest request(Requestor::next_request_number(), unit_number);
+	auto response = Requestor::send_request(request, connection);
+	handle_simple_response<InitResponse>(std::move(response));
+}
+
+void FujiNet::open(const BYTE unit_number, Connection* connection)
+{
+	const OpenRequest request(Requestor::next_request_number(), unit_number);
+	auto response = Requestor::send_request(request, connection);
+	handle_simple_response<OpenResponse>(std::move(response));
+}
+
+void FujiNet::close(const BYTE unit_number, Connection* connection)
+{
+	const CloseRequest request(Requestor::next_request_number(), unit_number);
+	auto response = Requestor::send_request(request, connection);
+	handle_simple_response<CloseResponse>(std::move(response));
+}
+
+void FujiNet::reset(const BYTE unit_number, Connection* connection)
+{
+	const ResetRequest request(Requestor::next_request_number(), unit_number);
+	auto response = Requestor::send_request(request, connection);
+	handle_simple_response<ResetResponse>(std::move(response));
+}
+
+void FujiNet::format(const BYTE unit_number, Connection* connection)
+{
+	const FormatRequest request(Requestor::next_request_number(), unit_number);
+	auto response = Requestor::send_request(request, connection);
+	handle_simple_response<FormatResponse>(std::move(response));
+}
+
+
+BYTE __stdcall c0Handler(const WORD programCounter, const WORD address, const BYTE write, const BYTE value, const ULONG nCycles)
 {
 	const UINT uSlot = ((address & 0xf0) >> 4) - 8;
 
 	if (uSlot < 8) {
-		const auto* pCard = static_cast<FujiNet*>(MemGetSlotParameters(uSlot));
+		auto* pCard = static_cast<FujiNet*>(MemGetSlotParameters(uSlot));
 		if (write) {
 			return pCard->io_write0(programCounter, address, value, nCycles);
 		}

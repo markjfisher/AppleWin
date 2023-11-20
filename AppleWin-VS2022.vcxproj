@@ -27,6 +27,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="source\SPoverSLIP\CloseRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\CloseResponse.h" />
     <ClInclude Include="source\SPoverSLIP\ControlResponse.h" />
     <ClInclude Include="resource\resource.h" />
     <ClInclude Include="resource\winres.h" />
@@ -87,10 +89,22 @@
     <ClInclude Include="source\FujiNet.h" />
     <ClInclude Include="source\SPoverSLIP\Connection.h" />
     <ClInclude Include="source\SPoverSLIP\ControlRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\FormatRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\FormatResponse.h" />
+    <ClInclude Include="source\SPoverSLIP\InitRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\InitResponse.h" />
     <ClInclude Include="source\SPoverSLIP\Listener.h" />
+    <ClInclude Include="source\SPoverSLIP\OpenRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\OpenResponse.h" />
     <ClInclude Include="source\SPoverSLIP\Packet.h" />
+    <ClInclude Include="source\SPoverSLIP\ReadBlockRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\ReadBlockResponse.h" />
+    <ClInclude Include="source\SPoverSLIP\ReadRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\ReadResponse.h" />
     <ClInclude Include="source\SPoverSLIP\Request.h" />
     <ClInclude Include="source\SPoverSLIP\Requestor.h" />
+    <ClInclude Include="source\SPoverSLIP\ResetRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\ResetResponse.h" />
     <ClInclude Include="source\SPoverSLIP\Response.h" />
     <ClInclude Include="source\SPoverSLIP\SLIP.h" />
     <ClInclude Include="source\SPoverSLIP\SmartPortCodes.h" />
@@ -124,6 +138,10 @@
     <ClInclude Include="source\SoundCore.h" />
     <ClInclude Include="source\Speaker.h" />
     <ClInclude Include="source\Speech.h" />
+    <ClInclude Include="source\SPoverSLIP\WriteBlockRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\WriteBlockResponse.h" />
+    <ClInclude Include="source\SPoverSLIP\WriteRequest.h" />
+    <ClInclude Include="source\SPoverSLIP\WriteResponse.h" />
     <ClInclude Include="source\SSI263.h" />
     <ClInclude Include="source\SSI263Phonemes.h" />
     <ClInclude Include="source\StdAfx.h" />
@@ -167,6 +185,8 @@
     <Text Include="docs\Wishlist.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="source\SPoverSLIP\CloseRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\CloseResponse.cpp" />
     <ClCompile Include="source\SPoverSLIP\ControlResponse.cpp" />
     <ClCompile Include="source\6522.cpp" />
     <ClCompile Include="source\6821.cpp" />
@@ -195,8 +215,22 @@
     <ClCompile Include="source\FujiNet.cpp" />
     <ClCompile Include="source\SPoverSLIP\Connection.cpp" />
     <ClCompile Include="source\SPoverSLIP\ControlRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\FormatRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\FormatResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\InitRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\InitResponse.cpp" />
     <ClCompile Include="source\SPoverSLIP\Listener.cpp" />
+    <ClCompile Include="source\SPoverSLIP\OpenRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\OpenResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\ReadBlockRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\ReadBlockResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\ReadRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\ReadResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\Request.cpp" />
     <ClCompile Include="source\SPoverSLIP\Requestor.cpp" />
+    <ClCompile Include="source\SPoverSLIP\ResetRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\ResetResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\Response.cpp" />
     <ClCompile Include="source\SPoverSLIP\SLIP.cpp" />
     <ClCompile Include="source\SPoverSLIP\StatusRequest.cpp" />
     <ClCompile Include="source\SPoverSLIP\StatusResponse.cpp" />
@@ -241,6 +275,10 @@
     <ClCompile Include="source\SoundCore.cpp" />
     <ClCompile Include="source\Speaker.cpp" />
     <ClCompile Include="source\Speech.cpp" />
+    <ClCompile Include="source\SPoverSLIP\WriteBlockRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\WriteBlockResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\WriteRequest.cpp" />
+    <ClCompile Include="source\SPoverSLIP\WriteResponse.cpp" />
     <ClCompile Include="source\SSI263.cpp" />
     <ClCompile Include="source\StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
