@@ -14,6 +14,21 @@
 
 uint8_t Listener::next_device_id_ = 1;
 
+Listener::Listener(std::string ip_address, const int port): ip_address_(std::move(ip_address)), port_(port), is_listening_(false)
+{
+}
+
+bool Listener::get_is_listening() const
+{ return is_listening_; }
+
+void Listener::insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection>& conn)
+{
+	connection_map_[{start_id, end_id}] = conn;
+}
+
+uint8_t Listener::get_total_device_count()
+{ return next_device_id_ - 1; }
+
 Listener::~Listener()
 {
 	stop();
@@ -159,4 +174,15 @@ std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_d
 		}
 	}
 	return result;
+}
+
+std::vector<std::pair<uint8_t, Connection*>> Listener::get_all_connections() const
+{
+	std::vector<std::pair<uint8_t, Connection*>> connections;
+	for (const auto& kv : connection_map_) {
+		for (uint8_t id = kv.first.first; id <= kv.first.second; ++id) {
+			connections.push_back(std::make_pair(id, kv.second.get()));
+		}
+	}
+	return connections;
 }

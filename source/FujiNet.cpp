@@ -67,7 +67,7 @@ const std::string& FujiNet::GetSnapshotCardName()
 FujiNet::FujiNet(const UINT slot) : Card(CT_FujiNet, slot)
 {
 	LogFileOutput("FujiNet ctor, slot: %d\n", slot);
-	Reset(true);
+	FujiNet::Reset(true);
 	create_listener();
 }
 
@@ -86,7 +86,11 @@ void FujiNet::Reset(const bool powerCycle)
 	LogFileOutput("FujiNet Bridge Initialization, reset called\n");
 	if (powerCycle)
 	{
-		// may have to send RESET here to all devices
+		// send RESET to all devices
+		const auto connections = listener_->get_all_connections();
+		for (const auto& id_and_connection : connections) {
+			reset(id_and_connection.first, id_and_connection.second);
+		}
 	}
 }
 
@@ -182,7 +186,7 @@ BYTE FujiNet::io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCy
 	return 0;
 }
 
-void FujiNet::device_count(WORD sp_payload_loc)
+void FujiNet::device_count(const WORD sp_payload_loc)
 {
 	// Fill the status information directly into SP payload memory.
 	// The count is from sum of all devices across all Connections.

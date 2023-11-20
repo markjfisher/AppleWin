@@ -4,17 +4,13 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include <vector>
 
 #include "Connection.h"
 
 class Listener
 {
 public:
-	Listener(const std::string& ip_address, int port)
-		: ip_address_(ip_address), port_(port), is_listening_(false)
-	{
-	}
+	Listener(std::string ip_address, const int port);
 
 	~Listener();
 
@@ -22,15 +18,14 @@ public:
 	void stop();
 
 	std::thread create_listener_thread();
-	bool get_is_listening() const { return is_listening_; }
+	bool get_is_listening() const;
 
 	std::pair<uint8_t, std::shared_ptr<Connection>> find_connection_with_device(const uint8_t device_id) const;
+	std::vector<std::pair<uint8_t, Connection*>> get_all_connections() const;
 
-	void insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection>& conn) {
-		connection_map_[{start_id, end_id}] = conn;
-	}
+	void insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection>& conn);
 
-	static uint8_t get_total_device_count() { return next_device_id_ - 1; }
+	static uint8_t get_total_device_count();
 
 private:
 	std::string ip_address_;
