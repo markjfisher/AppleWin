@@ -9,6 +9,10 @@ const std::vector<uint8_t>& StatusResponse::get_data() const { return data_; }
 
 void StatusResponse::add_data(const uint8_t d) { data_.push_back(d); }
 
+void StatusResponse::set_data(const std::vector<uint8_t>& data) {
+	data_ = data;
+}
+
 std::vector<uint8_t> StatusResponse::serialize() const
 {
 	std::vector<uint8_t> data;

@@ -2,7 +2,8 @@
 
 #include <vector>
 #include <memory>
-#include <stdint.h>
+#include <cstdint>
+#include <stdexcept>
 #include "Packet.h"
 
 // Forward reference to break circular dependency

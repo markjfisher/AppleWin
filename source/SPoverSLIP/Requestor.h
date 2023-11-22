@@ -2,7 +2,6 @@
 
 #include <memory>
 #include "Connection.h"
-#include "Listener.h"
 #include "Request.h"
 #include "Response.h"
 

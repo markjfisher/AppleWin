@@ -20,7 +20,6 @@ std::vector<uint8_t> StatusRequest::serialize() const
 	return request_data;
 }
 
-// This is for the requestor to easily create the correct response type from the Responder's return value.
 std::unique_ptr<Response> StatusRequest::deserialize(const std::vector<uint8_t>& data) const
 {
 	if (data.size() < 2)

@@ -10,7 +10,7 @@
 class ReadBlockRequest : public Request
 {
 public:
-	ReadBlockRequest(const uint8_t request_sequence_number, const uint8_t sp_unit);
+	ReadBlockRequest(uint8_t request_sequence_number, uint8_t sp_unit);
 	std::vector<uint8_t> serialize() const override;
 	std::unique_ptr<Response> deserialize(const std::vector<uint8_t>& data) const override;
 	const std::array<uint8_t, 3>& get_block_number() const;

@@ -23,7 +23,7 @@ std::vector<uint8_t> ReadRequest::serialize() const
 
 std::unique_ptr<Response> ReadRequest::deserialize(const std::vector<uint8_t>& data) const
 {
-	if (data.size() < 2)
+	if (data.size() < 3)
 	{
 		throw std::runtime_error("Not enough data to deserialize ReadResponse");
 	}

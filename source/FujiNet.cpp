@@ -67,8 +67,8 @@ const std::string& FujiNet::GetSnapshotCardName()
 FujiNet::FujiNet(const UINT slot) : Card(CT_FujiNet, slot)
 {
 	LogFileOutput("FujiNet ctor, slot: %d\n", slot);
-	FujiNet::Reset(true);
 	create_listener();
+	FujiNet::Reset(true);
 }
 
 FujiNet::~FujiNet()

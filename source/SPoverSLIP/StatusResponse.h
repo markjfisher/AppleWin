@@ -12,6 +12,7 @@ public:
 
 	const std::vector<uint8_t>& get_data() const;
 	void add_data(uint8_t d);
+	void set_data(const std::vector<uint8_t>& data);
 
 private:
 	std::vector<uint8_t> data_;

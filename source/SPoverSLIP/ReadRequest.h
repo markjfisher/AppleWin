@@ -20,7 +20,6 @@ public:
 	const std::array<uint8_t, 3>& get_address() const;
 	void set_address_from_ptr(const uint8_t * ptr, size_t offset);
 
-
 private:
 	std::array<uint8_t, 2> byte_count_;
 	std::array<uint8_t, 3> address_;
