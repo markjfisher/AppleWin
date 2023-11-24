@@ -4,6 +4,9 @@
 #include <iostream>
 
 #include "Listener.h"
+
+#include "InitRequest.h"
+#include "InitResponse.h"
 #include "TCPConnection.h"
 #include "SLIP.h"
 
@@ -120,21 +123,26 @@ void Listener::create_connection(int socket)
 	conn->create_read_channel();
 	while (!conn->is_connected()) {}
 
-	StatusRequest request(Requestor::next_request_number(), 0, 0);	// Device Count Request
-	const auto response = Requestor::send_request(request, conn.get());
-	const auto status_response = dynamic_cast<StatusResponse*>(response.get());
-	if (status_response != nullptr)
+	// We need to send an INIT to device 01 for this connection, then 02, ... until we get an error back
+	// This will determine the number of devices attached.
+
+	bool still_scanning = true;
+	uint8_t unit_id = 1;
+
+	// send init requests to find all the devices on this connection
+	while(still_scanning && unit_id < 255)
 	{
-		if (status_response->get_status() == 0 && status_response->get_data()[0] > 0)
-		{
-			// Read the device count from the first byte of data, and save the connection so it persists
-			const auto device_count = status_response->get_data()[0];
-			const auto start_id = next_device_id_;
-			const auto end_id = static_cast<uint8_t>(start_id + device_count - 1);
-			next_device_id_ = end_id + 1;
-			connection_map_[{start_id, end_id}] = conn;
-		}
+		InitRequest request(Requestor::next_request_number(), unit_id);
+		const auto response = Requestor::send_request(request, conn.get());
+		const auto init_response = dynamic_cast<InitResponse*>(response.get());
+		still_scanning = init_response->get_status() == 0;
+		if (still_scanning) unit_id++;
 	}
+
+	const auto start_id = next_device_id_;
+	const auto end_id = static_cast<uint8_t>(start_id + unit_id - 1);
+	next_device_id_ = end_id + 1;
+	insert_connection(start_id, end_id, conn);
 }
 
 void Listener::start()
