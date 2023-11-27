@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <memory>
 
 #include "YamlHelper.h"
-#include "FujiNet.h"
+#include "SmartPortOverSlip.h"
 #include "Interface.h"
 #include "../Registry.h"
 
@@ -57,23 +57,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SPoverSLIP/WriteRequest.h"
 #include "SPoverSLIP/WriteResponse.h"
 
-const std::string& FujiNet::GetSnapshotCardName()
+const std::string& SmartPortOverSlip::GetSnapshotCardName()
 {
-	static const std::string name("FujiNet");
-	LogFileOutput("FujiNet Returning name FujiNet\n");
+	static const std::string name("SmartPortOverSlip");
+	LogFileOutput("SmartPortOverSlip Returning name SmartPortOverSlip\n");
 	return name;
 }
 
-FujiNet::FujiNet(const UINT slot) : Card(CT_FujiNet, slot)
+SmartPortOverSlip::SmartPortOverSlip(const UINT slot) : Card(CT_SmartPortOverSlip, slot)
 {
-	LogFileOutput("FujiNet ctor, slot: %d\n", slot);
+	LogFileOutput("SmartPortOverSlip ctor, slot: %d\n", slot);
 	create_listener();
-	FujiNet::Reset(true);
+	SmartPortOverSlip::Reset(true);
 }
 
-FujiNet::~FujiNet()
+SmartPortOverSlip::~SmartPortOverSlip()
 {
-	LogFileOutput("FujiNet destructor\n");
+	LogFileOutput("SmartPortOverSlip destructor\n");
 	if (listener_ != nullptr)
 	{
 		listener_->stop();
@@ -81,9 +81,9 @@ FujiNet::~FujiNet()
 	listener_.reset();
 }
 
-void FujiNet::Reset(const bool powerCycle)
+void SmartPortOverSlip::Reset(const bool powerCycle)
 {
-	LogFileOutput("FujiNet Bridge Initialization, reset called\n");
+	LogFileOutput("SmartPortOverSlip Bridge Initialization, reset called\n");
 	if (powerCycle)
 	{
 		// send RESET to all devices
@@ -94,18 +94,18 @@ void FujiNet::Reset(const bool powerCycle)
 	}
 }
 
-void FujiNet::process_sp_over_slip()
+void SmartPortOverSlip::handle_write()
 {
 	// stack pointer location holds the data we need to service this request
 	WORD rts_location = mem[regs.sp + 1] + (mem[regs.sp + 2] << 8);
 	const BYTE command = mem[rts_location + 1];
 	const WORD cmd_list_loc = mem[rts_location + 2] + (mem[rts_location + 3] << 8);
-	// BYTE paramCount = mem[cmdListLoc];
+	// BYTE paramCount = mem[cmdListLoc]; // parameter count not used
 	const BYTE unit_number = mem[cmd_list_loc + 1];
 	const WORD sp_payload_loc = mem[cmd_list_loc + 2] + (mem[cmd_list_loc + 3] << 8);
 	const WORD params_loc = cmd_list_loc + 4;
 
-	LogFileOutput("FujiNet processing SP command: 0x%02x, unit: 0x%02x, cmdList: 0x%04x, spPayLoad: 0x%04x, p1: 0x%02x\n", command, unit_number, cmd_list_loc, sp_payload_loc, mem[params_loc]);
+	LogFileOutput("SmartPortOverSlip processing SP command: 0x%02x, unit: 0x%02x, cmdList: 0x%04x, spPayLoad: 0x%04x, p1: 0x%02x\n", command, unit_number, cmd_list_loc, sp_payload_loc, mem[params_loc]);
 
 	// Fix the stack so the RTS in the firmware returns to the instruction after the data
 	rts_location += 3;
@@ -175,23 +175,21 @@ void FujiNet::process_sp_over_slip()
 
 }
 
-BYTE FujiNet::io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCycles)
+BYTE SmartPortOverSlip::io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCycles)
 {
 	const uint8_t loc = address & 0x0f;
 	// Only do something if $65 is sent to address $02
 	if (value == 0x65 && loc == 0x02)
 	{
-		process_sp_over_slip();
+		handle_write();
 	}
 	return 0;
 }
 
-void FujiNet::device_count(const WORD sp_payload_loc)
+void SmartPortOverSlip::device_count(const WORD sp_payload_loc)
 {
 	// Fill the status information directly into SP payload memory.
 	// The count is from sum of all devices across all Connections.
-	// TODO: to remove the initial "here are my devices" code, this should change to querying its connections for a count of devices, i.e. do a "0"/"0" request.
-	// TODO: doing this dynamically here ensures we catch any changes to a device, or connections that are lost.
 	const BYTE deviceCount = Listener::get_total_device_count();
 	mem[sp_payload_loc] = deviceCount;
 	mem[sp_payload_loc + 1] = 1 << 6;	// no interrupt
@@ -205,7 +203,7 @@ void FujiNet::device_count(const WORD sp_payload_loc)
 	set_processor_status(AF_ZERO);
 }
 
-void FujiNet::read_block(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
+void SmartPortOverSlip::read_block(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
 {
 	ReadBlockRequest request(Requestor::next_request_number(), unit_number);
 	// Assume that (cmd_list_loc + 4 == params_loc) holds 3 bytes for the block number. If it's in the payload, this is wrong and will have to be fixed.
@@ -220,7 +218,7 @@ void FujiNet::read_block(const BYTE unit_number, Connection* connection, const W
 	});
 }
 
-void FujiNet::write_block(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
+void SmartPortOverSlip::write_block(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
 {
 	WriteBlockRequest request(Requestor::next_request_number(), unit_number);
 	// Assume that (cmd_list_loc + 4 == params_loc) holds 3 bytes for the block number. The payload contains the data to write
@@ -231,7 +229,7 @@ void FujiNet::write_block(const BYTE unit_number, Connection* connection, const 
 	handle_simple_response<WriteBlockResponse>(std::move(response));
 }
 
-void FujiNet::read(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
+void SmartPortOverSlip::read(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
 {
 	ReadRequest request(Requestor::next_request_number(), unit_number);
 	request.set_byte_count_from_ptr(mem, params_loc);
@@ -247,7 +245,7 @@ void FujiNet::read(const BYTE unit_number, Connection* connection, const WORD sp
 	});
 }
 
-void FujiNet::write(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
+void SmartPortOverSlip::write(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
 {
 	WriteRequest request(Requestor::next_request_number(), unit_number);
 	request.set_byte_count_from_ptr(mem, params_loc);
@@ -260,7 +258,7 @@ void FujiNet::write(const BYTE unit_number, Connection* connection, const WORD s
 	handle_simple_response<WriteResponse>(std::move(response));
 }
 
-void FujiNet::status(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const BYTE status_code)
+void SmartPortOverSlip::status(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const BYTE status_code)
 {
 	// see https://www.1000bit.it/support/manuali/apple/technotes/smpt/tn.smpt.2.html
 	const StatusRequest request(Requestor::next_request_number(), unit_number, status_code);
@@ -274,7 +272,7 @@ void FujiNet::status(const BYTE unit_number, Connection* connection, const WORD 
 	});
 }
 
-void FujiNet::control(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const BYTE control_code)
+void SmartPortOverSlip::control(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const BYTE control_code)
 {
 	const auto length = mem[sp_payload_loc] + (mem[sp_payload_loc + 1] << 8) + 2;
 	uint8_t* start_ptr = &mem[sp_payload_loc];
@@ -285,35 +283,35 @@ void FujiNet::control(const BYTE unit_number, Connection* connection, const WORD
 	handle_simple_response<ControlResponse>(std::move(response));
 }
 
-void FujiNet::init(const BYTE unit_number, Connection* connection)
+void SmartPortOverSlip::init(const BYTE unit_number, Connection* connection)
 {
 	const InitRequest request(Requestor::next_request_number(), unit_number);
 	auto response = Requestor::send_request(request, connection);
 	handle_simple_response<InitResponse>(std::move(response));
 }
 
-void FujiNet::open(const BYTE unit_number, Connection* connection)
+void SmartPortOverSlip::open(const BYTE unit_number, Connection* connection)
 {
 	const OpenRequest request(Requestor::next_request_number(), unit_number);
 	auto response = Requestor::send_request(request, connection);
 	handle_simple_response<OpenResponse>(std::move(response));
 }
 
-void FujiNet::close(const BYTE unit_number, Connection* connection)
+void SmartPortOverSlip::close(const BYTE unit_number, Connection* connection)
 {
 	const CloseRequest request(Requestor::next_request_number(), unit_number);
 	auto response = Requestor::send_request(request, connection);
 	handle_simple_response<CloseResponse>(std::move(response));
 }
 
-void FujiNet::reset(const BYTE unit_number, Connection* connection)
+void SmartPortOverSlip::reset(const BYTE unit_number, Connection* connection)
 {
 	const ResetRequest request(Requestor::next_request_number(), unit_number);
 	auto response = Requestor::send_request(request, connection);
 	handle_simple_response<ResetResponse>(std::move(response));
 }
 
-void FujiNet::format(const BYTE unit_number, Connection* connection)
+void SmartPortOverSlip::format(const BYTE unit_number, Connection* connection)
 {
 	const FormatRequest request(Requestor::next_request_number(), unit_number);
 	auto response = Requestor::send_request(request, connection);
@@ -326,7 +324,7 @@ BYTE __stdcall c0Handler(const WORD programCounter, const WORD address, const BY
 	const UINT uSlot = ((address & 0xf0) >> 4) - 8;
 
 	if (uSlot < 8) {
-		auto* pCard = static_cast<FujiNet*>(MemGetSlotParameters(uSlot));
+		auto* pCard = static_cast<SmartPortOverSlip*>(MemGetSlotParameters(uSlot));
 		if (write) {
 			return pCard->io_write0(programCounter, address, value, nCycles);
 		}
@@ -334,9 +332,9 @@ BYTE __stdcall c0Handler(const WORD programCounter, const WORD address, const BY
 	return 0;
 }
 
-void FujiNet::InitializeIO(LPBYTE pCxRomPeripheral)
+void SmartPortOverSlip::InitializeIO(LPBYTE pCxRomPeripheral)
 {
-	LogFileOutput("FujiNet InitialiseIO\n");
+	LogFileOutput("SmartPortOverSlip InitialiseIO\n");
 
 	// Load firmware into chosen slot
 	const BYTE* pData = GetFrame().GetResource(IDR_FUJINET_FW, "FIRMWARE", APPLE_SLOT_SIZE);
@@ -364,31 +362,31 @@ void FujiNet::InitializeIO(LPBYTE pCxRomPeripheral)
 	RegisterIoHandler(m_slot, nullptr, c0Handler, nullptr, nullptr, this, nullptr);
 }
 
-void FujiNet::Update(const ULONG nExecutedCycles)
+void SmartPortOverSlip::Update(const ULONG nExecutedCycles)
 {
-	// LogFileOutput("FujiNet Update\n");
+	// LogFileOutput("SmartPortOverSlip Update\n");
 }
 
 
-void FujiNet::SaveSnapshot(YamlSaveHelper& yamlSaveHelper)
+void SmartPortOverSlip::SaveSnapshot(YamlSaveHelper& yamlSaveHelper)
 {
-	LogFileOutput("FujiNet SaveSnapshot\n");
+	LogFileOutput("SmartPortOverSlip SaveSnapshot\n");
 }
 
-bool FujiNet::LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT version)
+bool SmartPortOverSlip::LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT version)
 {
-	LogFileOutput("FujiNet LoadSnapshot\n");
+	LogFileOutput("SmartPortOverSlip LoadSnapshot\n");
 	return true;
 }
 
-void FujiNet::create_listener()
+void SmartPortOverSlip::create_listener()
 {
 	listener_ = std::make_unique<Listener>("0.0.0.0", 1985);
 	listener_->start();
-	LogFileOutput("FujiNet Created SP over SLIP listener on 0.0.0.0:1985\n");
+	LogFileOutput("SmartPortOverSlip Created SP over SLIP listener on 0.0.0.0:1985\n");
 }
 
-void FujiNet::Destroy()
+void SmartPortOverSlip::Destroy()
 {
 	// Stop the listener and its connections
 	if (listener_ != nullptr)

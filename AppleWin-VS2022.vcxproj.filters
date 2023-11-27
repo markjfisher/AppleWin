@@ -274,7 +274,7 @@
     <ClCompile Include="source\MockingboardCardManager.cpp">
       <Filter>Source Files\Emulator</Filter>
     </ClCompile>
-    <ClCompile Include="source\FujiNet.cpp" />
+    <ClCompile Include="source\SmartPortOverSlip.cpp" />
     <ClCompile Include="source\SPoverSLIP\SLIP.cpp" />
     <ClCompile Include="source\SPoverSLIP\Connection.cpp" />
     <ClCompile Include="source\SPoverSLIP\Listener.cpp" />
@@ -648,7 +648,7 @@
     <ClInclude Include="source\MockingboardDefs.h">
       <Filter>Source Files\Emulator</Filter>
     </ClInclude>
-    <ClInclude Include="source\FujiNet.h" />
+    <ClInclude Include="source\SmartPortOverSlip.h" />
     <ClInclude Include="source\SPoverSLIP\SPoSLIP.h" />
     <ClInclude Include="source\SPoverSLIP\SLIP.h" />
     <ClInclude Include="source\SPoverSLIP\Packet.h" />

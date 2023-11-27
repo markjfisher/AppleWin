@@ -206,9 +206,9 @@ bool ProcessCmdLine(LPSTR lpCmdLine)
 					else
 						LogFileOutput("VidHD currently only supported in slot 3\n");
 				}
-				if (strcmp(lpCmdLine, "fujinet") == 0)
+				if (strcmp(lpCmdLine, "spoverslip") == 0)
 				{
-					g_cmdLine.slotInsert[slot] = CT_FujiNet;
+					g_cmdLine.slotInsert[slot] = CT_SmartPortOverSlip;
 				}
 				
 			}

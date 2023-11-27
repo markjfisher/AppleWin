@@ -28,13 +28,13 @@ enum
 };
 
 
-class FujiNet : public Card
+class SmartPortOverSlip : public Card
 {
 public:
     static const std::string& GetSnapshotCardName();
 
-    explicit FujiNet(UINT slot);
-    ~FujiNet() override;
+    explicit SmartPortOverSlip(UINT slot);
+    ~SmartPortOverSlip() override;
 
     void Destroy() override;
     void InitializeIO(LPBYTE pCxRomPeripheral) override;
@@ -45,7 +45,7 @@ public:
 
 	BYTE io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCycles);
 	static void device_count(WORD sp_payload_loc);
-    void process_sp_over_slip();
+    void handle_write();
     void status(BYTE unit_number, Connection* connection, WORD sp_payload_loc, BYTE status_code);
     void control(BYTE unit_number, Connection* connection, WORD sp_payload_loc, BYTE control_code);
     void init(BYTE unit_number, Connection* connection);

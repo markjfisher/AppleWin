@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <iostream>
+#include <chrono>
 
 #include "Listener.h"
 
@@ -12,8 +13,6 @@
 
 #include "Log.h"
 #include "Requestor.h"
-#include "StatusRequest.h"
-#include "StatusResponse.h"
 
 uint8_t Listener::next_device_id_ = 1;
 
@@ -22,7 +21,9 @@ Listener::Listener(std::string ip_address, const int port): ip_address_(std::mov
 }
 
 bool Listener::get_is_listening() const
-{ return is_listening_; }
+{
+	return is_listening_;
+}
 
 void Listener::insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection>& conn)
 {
@@ -30,7 +31,9 @@ void Listener::insert_connection(uint8_t start_id, uint8_t end_id, const std::sh
 }
 
 uint8_t Listener::get_total_device_count()
-{ return next_device_id_ - 1; }
+{
+	return next_device_id_ - 1;
+}
 
 Listener::~Listener()
 {
@@ -74,15 +77,15 @@ void Listener::listener_function()
 
 	while (is_listening_)
 	{
-		fd_set sockSet;
-		FD_ZERO(&sockSet);
-		FD_SET(server_fd, &sockSet);
+		fd_set sock_set;
+		FD_ZERO(&sock_set);
+		FD_SET(server_fd, &sock_set);
 
 		timeval timeout;
 		timeout.tv_sec = 2;
 		timeout.tv_usec = 0;
 
-		const int activity = select(0, &sockSet, nullptr, nullptr, &timeout);
+		const int activity = select(0, &sock_set, nullptr, nullptr, &timeout);
 
 		if (activity == SOCKET_ERROR) {
 			LogFileOutput("Listener::listener_function - select failed\n");
@@ -114,14 +117,22 @@ void Listener::listener_function()
 // Creates a Connection object, which is how SP device(s) will register itself with our listener.
 void Listener::create_connection(int socket)
 {
-	// New implementation:
-	//  - Send Status Request for Device Count
-	//  - Add device_id range to the connection_map_ for this connection.
-	// I did consider doing DIB here, but A2 OS can do that against each device ID as it needs it.
-
+	// Create a connection, give it some time to settle, else exit without creating listener to connection
 	const std::shared_ptr<Connection> conn = std::make_shared<TCPConnection>(socket);
 	conn->create_read_channel();
-	while (!conn->is_connected()) {}
+
+	const auto start = std::chrono::steady_clock::now();
+	// Give the connection a generous 10 seconds to work.
+	constexpr auto timeout = std::chrono::seconds(10);
+
+	while (!conn->is_connected())
+	{
+		auto now = std::chrono::steady_clock::now();
+		if (std::chrono::duration_cast<std::chrono::seconds>(now - start) > timeout) {
+			LogFileOutput("Listener::create_connection() - Failed to establish connection, timed out.\n");
+			return;
+		}
+	}
 
 	// We need to send an INIT to device 01 for this connection, then 02, ... until we get an error back
 	// This will determine the number of devices attached.
@@ -129,8 +140,8 @@ void Listener::create_connection(int socket)
 	bool still_scanning = true;
 	uint8_t unit_id = 1;
 
-	// send init requests to find all the devices on this connection
-	while(still_scanning && unit_id < 255)
+	// send init requests to find all the devices on this connection, or we have too many devices.
+	while(still_scanning && (unit_id + next_device_id_) < 255)
 	{
 		InitRequest request(Requestor::next_request_number(), unit_id);
 		const auto response = Requestor::send_request(request, conn.get());
@@ -142,6 +153,7 @@ void Listener::create_connection(int socket)
 	const auto start_id = next_device_id_;
 	const auto end_id = static_cast<uint8_t>(start_id + unit_id - 1);
 	next_device_id_ = end_id + 1;
+	// track the connection and device ranges it reported. Further connections can add to the devices we can target.
 	insert_connection(start_id, end_id, conn);
 }
 
@@ -189,7 +201,7 @@ std::vector<std::pair<uint8_t, Connection*>> Listener::get_all_connections() con
 	std::vector<std::pair<uint8_t, Connection*>> connections;
 	for (const auto& kv : connection_map_) {
 		for (uint8_t id = kv.first.first; id <= kv.first.second; ++id) {
-			connections.push_back(std::make_pair(id, kv.second.get()));
+			connections.emplace_back(id, kv.second.get());
 		}
 	}
 	return connections;

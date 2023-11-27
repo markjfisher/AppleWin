@@ -86,7 +86,7 @@
     <ClInclude Include="source\DiskLog.h" />
     <ClInclude Include="source\FourPlay.h" />
     <ClInclude Include="source\FrameBase.h" />
-    <ClInclude Include="source\FujiNet.h" />
+    <ClInclude Include="source\SmartPortOverSlip.h" />
     <ClInclude Include="source\SPoverSLIP\Connection.h" />
     <ClInclude Include="source\SPoverSLIP\ControlRequest.h" />
     <ClInclude Include="source\SPoverSLIP\FormatRequest.h" />
@@ -212,7 +212,7 @@
     <ClCompile Include="source\Disk2CardManager.cpp" />
     <ClCompile Include="source\FourPlay.cpp" />
     <ClCompile Include="source\FrameBase.cpp" />
-    <ClCompile Include="source\FujiNet.cpp" />
+    <ClCompile Include="source\SmartPortOverSlip.cpp" />
     <ClCompile Include="source\SPoverSLIP\Connection.cpp" />
     <ClCompile Include="source\SPoverSLIP\ControlRequest.cpp" />
     <ClCompile Include="source\SPoverSLIP\FormatRequest.cpp" />
