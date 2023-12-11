@@ -1,9 +1,9 @@
 #!/bin/bash
 
-cl65 -t none fujinet.s -o fujinet.bin
+cl65 -t none spoverslip.s -o spoverslip.bin
 if [ $? -ne 0 ] ; then
   echo "Error compiling firmware."
   exit 1
 fi
 
-cp fujinet.bin ../../resource/
+cp spoverslip.bin ../../resource/

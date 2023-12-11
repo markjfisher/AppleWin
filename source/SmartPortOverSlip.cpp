@@ -337,7 +337,7 @@ void SmartPortOverSlip::InitializeIO(LPBYTE pCxRomPeripheral)
 	LogFileOutput("SmartPortOverSlip InitialiseIO\n");
 
 	// Load firmware into chosen slot
-	const BYTE* pData = GetFrame().GetResource(IDR_FUJINET_FW, "FIRMWARE", APPLE_SLOT_SIZE);
+	const BYTE* pData = GetFrame().GetResource(IDR_SPOVERSLIP_FW, "FIRMWARE", APPLE_SLOT_SIZE);
 	if (pData == nullptr)
 		return;
 

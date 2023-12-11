@@ -92,6 +92,6 @@ void TCPConnection::create_read_channel()
 				complete_data.clear();
 			}
 		}
-		LogFileOutput("FujiNet TCPConnection::create_read_channel - thread is EXITING\n");
+		LogFileOutput("TCPConnection::create_read_channel - thread is EXITING\n");
 	});
 }
