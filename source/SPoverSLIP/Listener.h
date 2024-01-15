@@ -10,7 +10,7 @@
 class Listener
 {
 public:
-	Listener(std::string ip_address, const int port);
+	Listener(std::string ip_address, const u_short port);
 
 	~Listener();
 
@@ -29,13 +29,13 @@ public:
 
 private:
 	std::string ip_address_;
-	int port_;
+	u_short port_;
 	std::mutex mtx_;
 	std::thread listening_thread_;
 	static uint8_t next_device_id_;
 	std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<Connection>> connection_map_;
 
 	bool is_listening_;
-	void create_connection(int socket);
+	void create_connection(unsigned int socket);
 	void listener_function();
 };

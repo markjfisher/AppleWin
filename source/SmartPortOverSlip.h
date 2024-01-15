@@ -118,6 +118,8 @@ public:
         }
     }
 private:
-    // SP over SLIP
     std::unique_ptr<Listener> listener_;
+
+    // Ensure no more than 1 card is active, as we only listen on 1 port
+    static int active_instances;
 };

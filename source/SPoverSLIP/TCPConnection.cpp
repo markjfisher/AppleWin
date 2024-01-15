@@ -31,8 +31,8 @@ void TCPConnection::create_read_channel()
 		bool is_initialising = true;
 
 		// Set a timeout on the socket
-		struct timeval timeout;
-		timeout.tv_sec = 1;
+		timeval timeout;
+		timeout.tv_sec = 5;
 		timeout.tv_usec = 0;
 		setsockopt(self->get_socket(), SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout));
 
@@ -44,10 +44,11 @@ void TCPConnection::create_read_channel()
 				if (is_initialising)
 				{
 					is_initialising = false;
+					LogFileOutput("SmartPortOverSlip TCPConnection: connected\n");
 					self->set_is_connected(true);
 				}
 
-				valread = recv(self->get_socket(), reinterpret_cast<char*>(buffer.data()), buffer.size(), 0);
+				valread = recv(self->get_socket(), reinterpret_cast<char*>(buffer.data()), static_cast<int>(buffer.size()), 0);
 				const int errsv = errno;
 				if (valread < 0)
 				{
@@ -67,6 +68,7 @@ void TCPConnection::create_read_channel()
 				}
 				if (valread > 0)
 				{
+					// LogFileOutput("SmartPortOverSlip TCPConnection, inserting data, valread: %d\n", valread);
 					complete_data.insert(complete_data.end(), buffer.begin(), buffer.begin() + valread);
 				}
 			}
@@ -75,6 +77,8 @@ void TCPConnection::create_read_channel()
 			if (!complete_data.empty())
 			{
 				std::vector<std::vector<uint8_t>> decoded_packets = SLIP::split_into_packets(complete_data.data(), complete_data.size());
+				// LogFileOutput("SmartPortOverSlip TCPConnection, packets decoded: %d\n", decoded_packets.size());
+
 				if (!decoded_packets.empty())
 				{
 					for (const auto& packet : decoded_packets)

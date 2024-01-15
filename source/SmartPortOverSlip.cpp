@@ -57,6 +57,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SPoverSLIP/WriteRequest.h"
 #include "SPoverSLIP/WriteResponse.h"
 
+int SmartPortOverSlip::active_instances = 0;
+
 const std::string& SmartPortOverSlip::GetSnapshotCardName()
 {
 	static const std::string name("SmartPortOverSlip");
@@ -66,6 +68,11 @@ const std::string& SmartPortOverSlip::GetSnapshotCardName()
 
 SmartPortOverSlip::SmartPortOverSlip(const UINT slot) : Card(CT_SmartPortOverSlip, slot)
 {
+	if (active_instances > 0) {
+		throw std::runtime_error("There is an existing slot active for SP over SLIP. You can only have 1 of these cards active.");
+	}
+	active_instances++;
+
 	LogFileOutput("SmartPortOverSlip ctor, slot: %d\n", slot);
 	create_listener();
 	SmartPortOverSlip::Reset(true);
@@ -73,6 +80,7 @@ SmartPortOverSlip::SmartPortOverSlip(const UINT slot) : Card(CT_SmartPortOverSli
 
 SmartPortOverSlip::~SmartPortOverSlip()
 {
+	active_instances--;
 	LogFileOutput("SmartPortOverSlip destructor\n");
 	if (listener_ != nullptr)
 	{
@@ -97,12 +105,12 @@ void SmartPortOverSlip::Reset(const bool powerCycle)
 void SmartPortOverSlip::handle_write()
 {
 	// stack pointer location holds the data we need to service this request
-	WORD rts_location = mem[regs.sp + 1] + (mem[regs.sp + 2] << 8);
+	WORD rts_location = static_cast<WORD>(mem[regs.sp + 1]) + static_cast<WORD>(mem[regs.sp + 2] << 8);
 	const BYTE command = mem[rts_location + 1];
 	const WORD cmd_list_loc = mem[rts_location + 2] + (mem[rts_location + 3] << 8);
 	// BYTE paramCount = mem[cmdListLoc]; // parameter count not used
 	const BYTE unit_number = mem[cmd_list_loc + 1];
-	const WORD sp_payload_loc = mem[cmd_list_loc + 2] + (mem[cmd_list_loc + 3] << 8);
+	const WORD sp_payload_loc = static_cast<WORD>(mem[cmd_list_loc + 2]) + static_cast<WORD>(mem[cmd_list_loc + 3] << 8);
 	const WORD params_loc = cmd_list_loc + 4;
 
 	LogFileOutput("SmartPortOverSlip processing SP command: 0x%02x, unit: 0x%02x, cmdList: 0x%04x, spPayLoad: 0x%04x, p1: 0x%02x\n", command, unit_number, cmd_list_loc, sp_payload_loc, mem[params_loc]);
@@ -175,7 +183,7 @@ void SmartPortOverSlip::handle_write()
 
 }
 
-BYTE SmartPortOverSlip::io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCycles)
+BYTE SmartPortOverSlip::io_write0(WORD programCounter, const WORD address, const BYTE value, ULONG nCycles)
 {
 	const uint8_t loc = address & 0x0f;
 	// Only do something if $65 is sent to address $02
@@ -192,7 +200,7 @@ void SmartPortOverSlip::device_count(const WORD sp_payload_loc)
 	// The count is from sum of all devices across all Connections.
 	const BYTE deviceCount = Listener::get_total_device_count();
 	mem[sp_payload_loc] = deviceCount;
-	mem[sp_payload_loc + 1] = 1 << 6;	// no interrupt
+	mem[sp_payload_loc + 1] = 1 << 6; // no interrupt
 	mem[sp_payload_loc + 2] = 0x4D;   // 0x4D46 == MF for vendor ID
 	mem[sp_payload_loc + 3] = 0x46;
 	mem[sp_payload_loc + 4] = 0x0A;   // version 1.00 Alpha = $100A
@@ -350,7 +358,7 @@ void SmartPortOverSlip::InitializeIO(LPBYTE pCxRomPeripheral)
 	const BYTE cn = ((m_slot & 0xff) | 0xC0); // slot(n) || 0xC0 = 0xCn
 
 	const BYTE locN2 = pData[0xFB]; 	// location of where to put $n2
-	const BYTE n2 = (((m_slot & 0xff) | 0x08) << 4) + 0x02; // (slot + 8) * 16 + 2, giving low byte of $C0n2
+	const BYTE n2 = static_cast<BYTE>(((m_slot & 0xff) | 0x08) << 4) + 0x02; // (slot + 8) * 16 + 2, giving low byte of $C0n2
 
 	// Modify the destination memory to hold the slot information needed by the firmware.
 	// The pData memory is R/O, and we get an access violation writing to it, so alter the destination instead.
@@ -381,6 +389,8 @@ bool SmartPortOverSlip::LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT versio
 
 void SmartPortOverSlip::create_listener()
 {
+	// grab the configured IP and Port TODO
+
 	listener_ = std::make_unique<Listener>("0.0.0.0", 1985);
 	listener_->start();
 	LogFileOutput("SmartPortOverSlip Created SP over SLIP listener on 0.0.0.0:1985\n");

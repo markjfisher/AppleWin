@@ -122,6 +122,8 @@
 #define IDC_CHECK_TFE_VIRTUAL_DNS       1090
 #define IDC_TFE_NPCAP_INFO              1091
 #define IDC_COMBO_GAME_IO_CONNECTOR     1092
+#define IDC_SPOSLIP_ADDRESS             1093
+#define IDC_SPOSLIP_PORT                1094
 #define IDM_EXIT                        40001
 #define IDM_HELP                        40002
 #define IDM_ABOUT                       40003

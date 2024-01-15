@@ -16,7 +16,7 @@
 
 uint8_t Listener::next_device_id_ = 1;
 
-Listener::Listener(std::string ip_address, const int port): ip_address_(std::move(ip_address)), port_(port), is_listening_(false)
+Listener::Listener(std::string ip_address, const u_short port): ip_address_(std::move(ip_address)), port_(port), is_listening_(false)
 {
 }
 
@@ -48,7 +48,7 @@ std::thread Listener::create_listener_thread()
 void Listener::listener_function()
 {
 	LogFileOutput("Listener::listener_function - RUNNING\n");
-	int server_fd, new_socket;
+	unsigned int server_fd, new_socket;
 	struct sockaddr_in address;
 	int address_length = sizeof(address);
 	WSADATA wsa_data;
@@ -115,7 +115,7 @@ void Listener::listener_function()
 }
 
 // Creates a Connection object, which is how SP device(s) will register itself with our listener.
-void Listener::create_connection(int socket)
+void Listener::create_connection(unsigned int socket)
 {
 	// Create a connection, give it some time to settle, else exit without creating listener to connection
 	const std::shared_ptr<Connection> conn = std::make_shared<TCPConnection>(socket);
@@ -143,6 +143,7 @@ void Listener::create_connection(int socket)
 	// send init requests to find all the devices on this connection, or we have too many devices.
 	while(still_scanning && (unit_id + next_device_id_) < 255)
 	{
+		LogFileOutput("SmartPortOverSlip listener sending request for unit_id: %d\n", unit_id);
 		InitRequest request(Requestor::next_request_number(), unit_id);
 		const auto response = Requestor::send_request(request, conn.get());
 		const auto init_response = dynamic_cast<InitResponse*>(response.get());
@@ -154,6 +155,7 @@ void Listener::create_connection(int socket)
 	const auto end_id = static_cast<uint8_t>(start_id + unit_id - 1);
 	next_device_id_ = end_id + 1;
 	// track the connection and device ranges it reported. Further connections can add to the devices we can target.
+	LogFileOutput("SmartPortOverSlip listener creating connection for start: %d, end: %d\n", start_id, end_id);
 	insert_connection(start_id, end_id, conn);
 }
 
