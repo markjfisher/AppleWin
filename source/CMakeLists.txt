@@ -94,6 +94,7 @@ set(SOURCE_FILES
   Utilities.cpp
   FrameBase.cpp
   CmdLine.cpp
+  SmartPortOverSlip.cpp
 
   Configuration/PropertySheetHelper.cpp
   Configuration/Config.cpp
@@ -118,6 +119,36 @@ set(SOURCE_FILES
   linux/duplicates/FourPlay.cpp
   linux/duplicates/SNESMAX.cpp
   linux/duplicates/Keyboard.cpp
+
+  SPoverSLIP/CloseRequest.cpp
+  SPoverSLIP/CloseResponse.cpp
+  SPoverSLIP/Connection.cpp
+  SPoverSLIP/ControlRequest.cpp
+  SPoverSLIP/ControlResponse.cpp
+  SPoverSLIP/FormatRequest.cpp
+  SPoverSLIP/FormatResponse.cpp
+  SPoverSLIP/InitRequest.cpp
+  SPoverSLIP/InitResponse.cpp
+  SPoverSLIP/Listener.cpp
+  SPoverSLIP/OpenRequest.cpp
+  SPoverSLIP/OpenResponse.cpp
+  SPoverSLIP/ReadBlockRequest.cpp
+  SPoverSLIP/ReadBlockResponse.cpp
+  SPoverSLIP/ReadRequest.cpp
+  SPoverSLIP/ReadResponse.cpp
+  SPoverSLIP/Request.cpp
+  SPoverSLIP/Requestor.cpp
+  SPoverSLIP/ResetRequest.cpp
+  SPoverSLIP/ResetResponse.cpp
+  SPoverSLIP/Response.cpp
+  SPoverSLIP/SLIP.cpp
+  SPoverSLIP/StatusRequest.cpp
+  SPoverSLIP/StatusResponse.cpp
+  SPoverSLIP/TCPConnection.cpp
+  SPoverSLIP/WriteBlockRequest.cpp
+  SPoverSLIP/WriteBlockResponse.cpp
+  SPoverSLIP/WriteRequest.cpp
+  SPoverSLIP/WriteResponse.cpp
 
   Z80VICE/z80.cpp
   Z80VICE/z80mem.cpp
@@ -178,6 +209,7 @@ set(HEADER_FILES
   FrameBase.h
   FourPlay.h
   SNESMAX.h
+  SmartPortOverSlip.h
 
   Common.h
   DiskDefs.h
@@ -214,6 +246,39 @@ set(HEADER_FILES
   linux/cassettetape.h
   linux/network/slirp2.h
   linux/network/portfwds.h
+
+  SPoverSLIP/CloseRequest.h
+  SPoverSLIP/CloseResponse.h
+  SPoverSLIP/Connection.h
+  SPoverSLIP/ControlRequest.h
+  SPoverSLIP/ControlResponse.h
+  SPoverSLIP/FormatRequest.h
+  SPoverSLIP/FormatResponse.h
+  SPoverSLIP/InitRequest.h
+  SPoverSLIP/InitResponse.h
+  SPoverSLIP/Listener.h
+  SPoverSLIP/OpenRequest.h
+  SPoverSLIP/OpenResponse.h
+  SPoverSLIP/Packet.h
+  SPoverSLIP/ReadBlockRequest.h
+  SPoverSLIP/ReadBlockResponse.h
+  SPoverSLIP/ReadRequest.h
+  SPoverSLIP/ReadResponse.h
+  SPoverSLIP/Request.h
+  SPoverSLIP/Requestor.h
+  SPoverSLIP/ResetRequest.h
+  SPoverSLIP/ResetResponse.h
+  SPoverSLIP/Response.h
+  SPoverSLIP/SLIP.h
+  SPoverSLIP/SmartPortCodes.h
+  SPoverSLIP/SPoSLIP.h
+  SPoverSLIP/StatusRequest.h
+  SPoverSLIP/StatusResponse.h
+  SPoverSLIP/TCPConnection.h
+  SPoverSLIP/WriteBlockRequest.h
+  SPoverSLIP/WriteBlockResponse.h
+  SPoverSLIP/WriteRequest.h
+  SPoverSLIP/WriteResponse.h
 
   Z80VICE/z80.h
   Z80VICE/z80mem.h

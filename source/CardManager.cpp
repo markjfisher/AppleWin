@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
 
+#include "Log.h"
 #include "StdAfx.h"
 
 #include "CardManager.h"
@@ -117,6 +118,7 @@ void CardManager::InsertInternal(UINT slot, SS_CARDTYPE type)
 		m_slot[slot] = new Uthernet2(slot);
 		break;
 	case CT_SmartPortOverSlip:
+    LogOutput("Inserting SP over SLIP in slot %d\n", slot);
 		m_slot[slot] = new SmartPortOverSlip(slot);
 		break;
 	case CT_LanguageCard:

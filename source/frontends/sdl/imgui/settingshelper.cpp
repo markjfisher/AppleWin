@@ -42,6 +42,7 @@ namespace
      {CT_SNESMAX, "SNESMAX"},
      {CT_VidHD, "VidHD"},
      {CT_Uthernet2, "Uthernet2"},
+     {CT_SmartPortOverSlip, "SPoverSLIP"},
     };
 
   const std::map<eApple2Type, std::string> apple2Types =
@@ -110,13 +111,13 @@ namespace
   const std::map<size_t, std::vector<SS_CARDTYPE>> cardsForSlots =
     {
       {0, {CT_Empty, CT_LanguageCard, CT_Saturn128K}},
-      {1, {CT_Empty, CT_GenericPrinter, CT_Uthernet2}},
-      {2, {CT_Empty, CT_SSC, CT_Uthernet2}},
-      {3, {CT_Empty, CT_Uthernet, CT_Uthernet2, CT_VidHD}},
-      {4, {CT_Empty, CT_MockingboardC, CT_MegaAudio, CT_SDMusic, CT_MouseInterface, CT_Phasor, CT_Uthernet2}},
-      {5, {CT_Empty, CT_MockingboardC, CT_MegaAudio, CT_SDMusic, CT_Disk2, CT_GenericHDD, CT_Phasor, CT_Uthernet2, CT_Z80, CT_SAM, CT_FourPlay, CT_SNESMAX}},
-      {6, {CT_Empty, CT_Disk2, CT_Uthernet2}},
-      {7, {CT_Empty, CT_GenericHDD, CT_Uthernet2}},
+      {1, {CT_Empty, CT_GenericPrinter, CT_Uthernet2, CT_SmartPortOverSlip}},
+      {2, {CT_Empty, CT_SSC, CT_Uthernet2, CT_SmartPortOverSlip}},
+      {3, {CT_Empty, CT_Uthernet, CT_Uthernet2, CT_SmartPortOverSlip, CT_VidHD}},
+      {4, {CT_Empty, CT_MockingboardC, CT_MegaAudio, CT_SDMusic, CT_MouseInterface, CT_Phasor, CT_Uthernet2, CT_SmartPortOverSlip}},
+      {5, {CT_Empty, CT_MockingboardC, CT_MegaAudio, CT_SDMusic, CT_Disk2, CT_GenericHDD, CT_Phasor, CT_Uthernet2, CT_SmartPortOverSlip, CT_Z80, CT_SAM, CT_FourPlay, CT_SNESMAX}},
+      {6, {CT_Empty, CT_Disk2, CT_Uthernet2, CT_SmartPortOverSlip}},
+      {7, {CT_Empty, CT_GenericHDD, CT_Uthernet2, CT_SmartPortOverSlip}},
     };
 
     const std::vector<SS_CARDTYPE> expansionCards =

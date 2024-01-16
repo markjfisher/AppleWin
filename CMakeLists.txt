@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(applewin HOMEPAGE_URL "https://github.com/audetto/AppleWin")
+project(applewin HOMEPAGE_URL "https://github.com/FujiNetWIFI/AppleWin")
 
 option(BUILD_APPLEN   "build ncurses frontend")
 option(BUILD_QAPPLE   "build Qt5 frontend")

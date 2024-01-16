@@ -27,7 +27,8 @@ namespace
      {IDR_MOUSEINTERFACE_FW, "MouseInterface.rom"},
      {IDR_THUNDERCLOCKPLUS_FW, "ThunderClockPlus.rom"},
      {IDR_TKCLOCK_FW, "TKClock.rom"},
-     {IDR_BASE64A_VIDEO_ROM, "Base64A_German_Video.rom"}
+     {IDR_BASE64A_VIDEO_ROM, "Base64A_German_Video.rom"},
+     {IDR_SPOVERSLIP_FW, "spoverslip.bin"}
     };
 }
 

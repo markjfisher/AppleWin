@@ -1,0 +1,5 @@
+BasedOnStyle: LLVM
+ColumnLimit: 160
+BreakBeforeBraces: Allman
+AllowShortBlocksOnASingleLine: true
+AlwaysBreakAfterReturnType: None
