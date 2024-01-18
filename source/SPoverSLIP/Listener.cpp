@@ -75,6 +75,12 @@ void Listener::listener_function()
   address.sin_port = htons(port_);
   address.sin_addr.s_addr = inet_addr(ip_address_.c_str());
 
+  int opt = 1;
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+    LogFileOutput("Listener::listener_function - setsockopt failed\n");
+    return;
+  }
+
   if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) == SOCKET_ERROR)
   {
     LogFileOutput("Listener::listener_function - bind failed\n");
