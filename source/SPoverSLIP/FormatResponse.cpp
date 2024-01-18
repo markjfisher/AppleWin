@@ -5,8 +5,8 @@ FormatResponse::FormatResponse(const uint8_t request_sequence_number, const uint
 
 std::vector<uint8_t> FormatResponse::serialize() const
 {
-	std::vector<uint8_t> data;
-	data.push_back(this->get_request_sequence_number());
-	data.push_back(this->get_status());
-	return data;
+  std::vector<uint8_t> data;
+  data.push_back(this->get_request_sequence_number());
+  data.push_back(this->get_status());
+  return data;
 }
