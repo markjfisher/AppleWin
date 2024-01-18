@@ -68,7 +68,7 @@ void Listener::listener_function()
     timeout.tv_sec = 2;
     timeout.tv_usec = 0;
 
-    const int activity = select(0, &sock_set, nullptr, nullptr, &timeout);
+    const int activity = select(server_fd + 1, &sock_set, nullptr, nullptr, &timeout);
 
     if (activity == SOCKET_ERROR)
     {
