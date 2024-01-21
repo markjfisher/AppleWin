@@ -202,6 +202,8 @@ void Listener::stop()
     for (auto &pair : connection_map_)
     {
       const auto &connection = pair.second;
+      // Send connection a reset sequence.
+      connection->send_data(std::vector<uint8_t>(Connection::reboot_sequence.begin(), Connection::reboot_sequence.end()));
       connection->set_is_connected(false);
       connection->join();
     }

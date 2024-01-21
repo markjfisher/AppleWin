@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -24,6 +25,8 @@ public:
   std::vector<uint8_t> wait_for_request();
 
   void join();
+
+  static constexpr std::array<uint8_t, 4> reboot_sequence = {0xFF, 0x00, 0x00, 0xFF};
 
 private:
   std::atomic<bool> is_connected_{false};
