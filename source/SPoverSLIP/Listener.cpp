@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <thread>
 
 #include "Listener.h"
 
@@ -196,19 +197,22 @@ void Listener::stop()
   LogFileOutput("Listener::stop()\n");
   if (is_listening_)
   {
-    // Give our own thread time to stop while we stop the connections.
+    // Stop listener first, otherwise the PC might reboot too fast and be picked up
     is_listening_ = false;
+    LogFileOutput("Listener::stop() ... joining listener until it stops\n");
+    listening_thread_.join();
 
+    LogFileOutput("Listener::stop() ... informing connections they need to stop\n");
+    auto reboot_ = std::vector<uint8_t>(Connection::reboot_sequence.begin(), Connection::reboot_sequence.end());
     for (auto &pair : connection_map_)
     {
       const auto &connection = pair.second;
-      // Send connection a reset sequence.
-      connection->send_data(std::vector<uint8_t>(Connection::reboot_sequence.begin(), Connection::reboot_sequence.end()));
+      connection->send_data(reboot_);
       connection->set_is_connected(false);
       connection->join();
     }
-    LogFileOutput("Listener::stop() ... joining listener until it stops\n");
-    listening_thread_.join();
+    // HACK! gives the connected devices time to reboot
+    // std::this_thread::sleep_for(std::chrono::seconds(3));
   }
   LogFileOutput("Listener::stop() ... finished\n");
 }
