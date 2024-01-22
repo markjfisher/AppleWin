@@ -1,4 +1,3 @@
-﻿#include "stdafx.h"
 #include "ReadRequest.h"
 
 #include "ReadResponse.h"

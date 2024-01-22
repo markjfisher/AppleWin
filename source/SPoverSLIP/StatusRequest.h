@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
-#include <cstdint>
 #include "Request.h"
 #include "Response.h"
+#include <cstdint>
+#include <vector>
 
 class StatusRequest : public Request
 {

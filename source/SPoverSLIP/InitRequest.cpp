@@ -1,4 +1,3 @@
-﻿#include "stdafx.h"
 #include "InitRequest.h"
 
 #include "InitResponse.h"

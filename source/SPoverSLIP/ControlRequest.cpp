@@ -1,4 +1,3 @@
-﻿#include "stdafx.h"
 #include "ControlRequest.h"
 
 #include "ControlResponse.h"

@@ -1,10 +1,25 @@
-#include "StdAfx.h"
-
 #include "TCPConnection.h"
 
-#include <iostream>
 #include <cstring>
+#include <iostream>
 #include <thread>
+
+// clang-format off
+#ifdef WIN32
+  #include <winsock2.h>
+  #pragma comment(lib, "ws2_32.lib")
+  #define CLOSE_SOCKET closesocket
+  #define SOCKET_ERROR_CODE WSAGetLastError()
+#else
+  #include <sys/socket.h>
+  #include <unistd.h>
+  #include <errno.h>
+  #define CLOSE_SOCKET close
+  #define SOCKET_ERROR_CODE errno
+  #define INVALID_SOCKET -1
+  #define SOCKET_ERROR -1
+#endif
+// clang-format off
 
 #include "Log.h"
 #include "SLIP.h"
@@ -54,17 +69,18 @@ void TCPConnection::create_read_channel()
             if (valread < 0)
             {
               // timeout is fine, just reloop.
-              if (errno == EAGAIN || errno == EWOULDBLOCK || errsv == 0)
+              if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0)
               {
                 continue;
               }
               // otherwise it was a genuine error.
-              std::cerr << "Error in read thread for connection, errno: " << errsv << " = " << strerror(errsv) << std::endl;
+              LogFileOutput("Error in read thread for connection, errno: %d = %s\n", errsv, strerror(errsv));
               self->set_is_connected(false);
             }
             if (valread == 0)
             {
               // disconnected, close connection, should remove it too: TODO
+              LogFileOutput("TCPConnection: recv == 0, disconnecting\n");
               self->set_is_connected(false);
             }
             if (valread > 0)
@@ -76,7 +92,8 @@ void TCPConnection::create_read_channel()
 
           if (!complete_data.empty())
           {
-            std::vector<std::vector<uint8_t>> decoded_packets = SLIP::split_into_packets(complete_data.data(), complete_data.size());
+            std::vector<std::vector<uint8_t>> decoded_packets =
+                SLIP::split_into_packets(complete_data.data(), complete_data.size());
             // LogFileOutput("SmartPortOverSlip TCPConnection, packets decoded: %d\n", decoded_packets.size());
 
             if (!decoded_packets.empty())
@@ -86,10 +103,10 @@ void TCPConnection::create_read_channel()
                 if (!packet.empty())
                 {
                   {
-                    std::lock_guard<std::mutex> lock(self->responses_mutex_);
-                    self->responses_[packet[0]] = packet;
+                    std::lock_guard<std::mutex> lock(self->data_mutex_);
+                    self->data_map_[packet[0]] = packet;
                   }
-                  self->response_cv_.notify_all();
+                  self->data_cv_.notify_all();
                 }
               }
             }

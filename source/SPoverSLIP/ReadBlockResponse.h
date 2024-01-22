@@ -1,6 +1,6 @@
 #pragma once
-#include <array>
 #include "Response.h"
+#include <array>
 
 class ReadBlockResponse : public Response
 {

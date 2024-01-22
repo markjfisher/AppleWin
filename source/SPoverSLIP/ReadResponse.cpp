@@ -1,6 +1,6 @@
 // ReSharper disable CppPassValueParameterByConstReference
-#include "stdafx.h"
 #include "ReadResponse.h"
+#include <cstddef>
 
 ReadResponse::ReadResponse(const uint8_t request_sequence_number, const uint8_t status) : Response(request_sequence_number, status) {}
 

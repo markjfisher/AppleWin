@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Connection.h"
-#include <string>
 #include <memory>
+#include <string>
 
 class TCPConnection : public Connection, public std::enable_shared_from_this<TCPConnection>
 {

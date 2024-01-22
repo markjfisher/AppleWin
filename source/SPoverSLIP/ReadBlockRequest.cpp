@@ -1,4 +1,3 @@
-﻿#include "stdafx.h"
 #include "ReadBlockRequest.h"
 
 #include "ReadBlockResponse.h"

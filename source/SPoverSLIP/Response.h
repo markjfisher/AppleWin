@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <cstdint>
 #include "Packet.h"
+#include <cstdint>
+#include <vector>
 
 class Response : public Packet
 {

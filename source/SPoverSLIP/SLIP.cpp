@@ -1,7 +1,6 @@
-#include "StdAfx.h"
 
-#include <iostream>
 #include "SLIP.h"
+#include <iostream>
 
 std::vector<uint8_t> SLIP::encode(const std::vector<uint8_t> &data)
 {

@@ -1,4 +1,3 @@
-﻿#include "stdafx.h"
 #include "ResetRequest.h"
 
 #include "ResetResponse.h"

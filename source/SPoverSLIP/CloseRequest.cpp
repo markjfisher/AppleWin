@@ -1,4 +1,3 @@
-﻿#include "stdafx.h"
 #include "CloseRequest.h"
 
 #include "CloseResponse.h"

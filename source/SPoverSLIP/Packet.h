@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <stdint.h>
 #include "SPoSLIP.h"
+#include <stdint.h>
+#include <vector>
 
 class Packet : public SPoSLIP
 {

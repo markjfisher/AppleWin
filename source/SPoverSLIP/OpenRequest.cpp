@@ -1,4 +1,3 @@
-﻿#include "stdafx.h"
 #include "OpenRequest.h"
 
 #include "OpenResponse.h"

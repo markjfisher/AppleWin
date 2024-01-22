@@ -185,9 +185,15 @@
     <Text Include="docs\Wishlist.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\SPoverSLIP\CloseRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\CloseResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\ControlResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\CloseRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\CloseResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\ControlResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="source\6522.cpp" />
     <ClCompile Include="source\6821.cpp" />
     <ClCompile Include="source\AY8910.cpp" />
@@ -213,28 +219,72 @@
     <ClCompile Include="source\FourPlay.cpp" />
     <ClCompile Include="source\FrameBase.cpp" />
     <ClCompile Include="source\SmartPortOverSlip.cpp" />
-    <ClCompile Include="source\SPoverSLIP\Connection.cpp" />
-    <ClCompile Include="source\SPoverSLIP\ControlRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\FormatRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\FormatResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\InitRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\InitResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\Listener.cpp" />
-    <ClCompile Include="source\SPoverSLIP\OpenRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\OpenResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\ReadBlockRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\ReadBlockResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\ReadRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\ReadResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\Request.cpp" />
-    <ClCompile Include="source\SPoverSLIP\Requestor.cpp" />
-    <ClCompile Include="source\SPoverSLIP\ResetRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\ResetResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\Response.cpp" />
-    <ClCompile Include="source\SPoverSLIP\SLIP.cpp" />
-    <ClCompile Include="source\SPoverSLIP\StatusRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\StatusResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\TCPConnection.cpp" />
+    <ClCompile Include="source\SPoverSLIP\Connection.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\ControlRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\FormatRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\FormatResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\InitRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\InitResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\Listener.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\OpenRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\OpenResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\ReadBlockRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\ReadBlockResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\ReadRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\ReadResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\Request.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\Requestor.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\ResetRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\ResetResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\Response.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\SLIP.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\StatusRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\StatusResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\TCPConnection.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="source\MockingboardCardManager.cpp" />
     <ClCompile Include="source\RGBMonitor.cpp" />
     <ClCompile Include="source\SAM.cpp" />
@@ -275,10 +325,18 @@
     <ClCompile Include="source\SoundCore.cpp" />
     <ClCompile Include="source\Speaker.cpp" />
     <ClCompile Include="source\Speech.cpp" />
-    <ClCompile Include="source\SPoverSLIP\WriteBlockRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\WriteBlockResponse.cpp" />
-    <ClCompile Include="source\SPoverSLIP\WriteRequest.cpp" />
-    <ClCompile Include="source\SPoverSLIP\WriteResponse.cpp" />
+    <ClCompile Include="source\SPoverSLIP\WriteBlockRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\WriteBlockResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\WriteRequest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\SPoverSLIP\WriteResponse.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="source\SSI263.cpp" />
     <ClCompile Include="source\StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

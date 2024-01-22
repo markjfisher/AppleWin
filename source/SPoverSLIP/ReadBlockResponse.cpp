@@ -1,5 +1,4 @@
 // ReSharper disable CppPassValueParameterByConstReference
-#include "stdafx.h"
 #include <algorithm>
 
 #include "ReadBlockResponse.h"

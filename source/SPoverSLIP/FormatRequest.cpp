@@ -1,4 +1,3 @@
-﻿#include "stdafx.h"
 #include "FormatRequest.h"
 
 #include "FormatResponse.h"

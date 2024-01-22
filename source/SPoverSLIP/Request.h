@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vector>
-#include <memory>
-#include <cstdint>
-#include <stdexcept>
 #include "Packet.h"
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <vector>
 
 // Forward reference to break circular dependency
 class Response;

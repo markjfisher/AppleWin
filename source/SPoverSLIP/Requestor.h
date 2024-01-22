@@ -1,9 +1,9 @@
 #pragma once
 
-#include <memory>
 #include "Connection.h"
 #include "Request.h"
 #include "Response.h"
+#include <memory>
 
 class Requestor
 {

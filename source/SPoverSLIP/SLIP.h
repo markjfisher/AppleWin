@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
+#include <cstddef>
 #include <stdint.h>
+#include <vector>
 
 #define SLIP_END 0300     /* indicates end of packet */
 #define SLIP_ESC 0333     /* indicates byte stuffing */

@@ -1,4 +1,3 @@
-#include "StdAfx.h"
 
 #include "StatusResponse.h"
 #include "StatusRequest.h"

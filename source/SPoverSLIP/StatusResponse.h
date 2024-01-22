@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <stdint.h>
 #include "Response.h"
+#include <stdint.h>
+#include <vector>
 
 class StatusResponse : public Response
 {

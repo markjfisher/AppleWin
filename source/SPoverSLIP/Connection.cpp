@@ -1,31 +1,34 @@
-#include "StdAfx.h"
-
-#include <vector>
+#include "Connection.h"
+#include <condition_variable>
 #include <cstdint>
 #include <mutex>
-#include <condition_variable>
-#include "Connection.h"
+#include <stdexcept>
+#include <vector>
 
+// This is called after AppleWin sends a request to a device, and is waiting for the response
 std::vector<uint8_t> Connection::wait_for_response(uint8_t request_id, std::chrono::seconds timeout)
 {
-  std::unique_lock<std::mutex> lock(responses_mutex_);
-  // mutex is unlocked as it goes into a wait, so then the inserting thread can add to map, and this can then pick it up when notified, or timeout.
-  if (!response_cv_.wait_for(lock, timeout, [this, request_id]() { return responses_.count(request_id) > 0; }))
+  std::unique_lock<std::mutex> lock(data_mutex_);
+  // mutex is unlocked as it goes into a wait, so then the inserting thread can
+  // add to map, and this can then pick it up when notified, or timeout.
+  if (!data_cv_.wait_for(lock, timeout, [this, request_id]() { return data_map_.count(request_id) > 0; }))
   {
     throw std::runtime_error("Timeout waiting for response");
   }
-  std::vector<uint8_t> response_data = responses_[request_id];
-  responses_.erase(request_id);
+  std::vector<uint8_t> response_data = data_map_[request_id];
+  data_map_.erase(request_id);
   return response_data;
 }
 
+// This is used by devices that are waiting for requests from AppleWin.
+// The codebase is used both sides of the connection.
 std::vector<uint8_t> Connection::wait_for_request()
 {
-  std::unique_lock<std::mutex> lock(responses_mutex_);
-  response_cv_.wait(lock, [this]() { return !responses_.empty(); });
-  const auto it = responses_.begin();
+  std::unique_lock<std::mutex> lock(data_mutex_);
+  data_cv_.wait(lock, [this]() { return !data_map_.empty(); });
+  const auto it = data_map_.begin();
   std::vector<uint8_t> request_data = it->second;
-  responses_.erase(it);
+  data_map_.erase(it);
 
   return request_data;
 }

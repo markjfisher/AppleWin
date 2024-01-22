@@ -1,26 +1,53 @@
-#include "StdAfx.h"
 
 #include <atomic>
-#include <iostream>
 #include <chrono>
+#include <iostream>
+#include <thread>
 
 #include "Listener.h"
 
 #include "InitRequest.h"
 #include "InitResponse.h"
-#include "TCPConnection.h"
 #include "SLIP.h"
+#include "TCPConnection.h"
 
 #include "Log.h"
 #include "Requestor.h"
 
+// clang-format off
+#ifdef WIN32
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+  #pragma comment(lib, "ws2_32.lib")
+  #define CLOSE_SOCKET closesocket
+  #define SOCKET_ERROR_CODE WSAGetLastError()
+#else
+  #include <arpa/inet.h>
+  #include <errno.h>
+  #include <netinet/in.h>
+  #include <sys/socket.h>
+  #include <sys/types.h>
+  #include <unistd.h>
+  #define CLOSE_SOCKET close
+  #define SOCKET_ERROR_CODE errno
+  #define INVALID_SOCKET -1
+  #define SOCKET_ERROR -1
+#endif
+// clang-format off
+
 uint8_t Listener::next_device_id_ = 1;
 
-Listener::Listener(std::string ip_address, const u_short port) : ip_address_(std::move(ip_address)), port_(port), is_listening_(false) {}
+Listener::Listener(std::string ip_address, const uint16_t port)
+    : ip_address_(std::move(ip_address)), port_(port), is_listening_(false)
+{
+}
 
 bool Listener::get_is_listening() const { return is_listening_; }
 
-void Listener::insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection> &conn) { connection_map_[{start_id, end_id}] = conn; }
+void Listener::insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection> &conn)
+{
+  connection_map_[{start_id, end_id}] = conn;
+}
 
 uint8_t Listener::get_total_device_count() { return next_device_id_ - 1; }
 
@@ -31,11 +58,19 @@ std::thread Listener::create_listener_thread() { return std::thread(&Listener::l
 void Listener::listener_function()
 {
   LogFileOutput("Listener::listener_function - RUNNING\n");
-  unsigned int server_fd, new_socket;
+  int server_fd, new_socket;
   struct sockaddr_in address;
+#ifdef WIN32
   int address_length = sizeof(address);
+#else
+  socklen_t address_length = sizeof(address);
+#endif
+
+#ifdef WIN32
   WSADATA wsa_data;
   WSAStartup(MAKEWORD(2, 2), &wsa_data);
+#endif
+
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
   {
     LogFileOutput("Listener::listener_function - Socket creation failed\n");
@@ -44,16 +79,23 @@ void Listener::listener_function()
 
   address.sin_family = AF_INET;
   address.sin_port = htons(port_);
-  address.sin_addr.s_addr = inet_addr(ip_address_.c_str());
+  inet_pton(AF_INET, ip_address_.c_str(), &(address.sin_addr));
 
+#ifdef WIN32
   char opt = 1;
+#else
+  int opt = 1;
+#endif
   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == SOCKET_ERROR)
   {
     LogFileOutput("Listener::listener_function - setsockopt failed\n");
     return;
   }
-
+#ifdef WIN32
   if (bind(server_fd, reinterpret_cast<SOCKADDR *>(&address), sizeof(address)) == SOCKET_ERROR)
+#else
+  if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) == SOCKET_ERROR)
+#endif
   {
     LogFileOutput("Listener::listener_function - bind failed\n");
     return;
@@ -90,7 +132,11 @@ void Listener::listener_function()
       continue;
     }
 
+#ifdef WIN32
     if ((new_socket = accept(server_fd, reinterpret_cast<SOCKADDR *>(&address), &address_length)) == INVALID_SOCKET)
+#else
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, &address_length)) == INVALID_SOCKET)
+#endif
     {
       LogFileOutput("Listener::listener_function - accept failed\n");
       is_listening_ = false;
@@ -102,8 +148,10 @@ void Listener::listener_function()
 
   LogFileOutput("Listener::listener_function - listener closing down\n");
 
-  closesocket(server_fd);
+  CLOSE_SOCKET(server_fd);
+#ifdef WIN32
   WSACleanup();
+#endif
 }
 
 // Creates a Connection object, which is how SP device(s) will register itself with our listener.
@@ -122,13 +170,15 @@ void Listener::create_connection(unsigned int socket)
     auto now = std::chrono::steady_clock::now();
     if (std::chrono::duration_cast<std::chrono::seconds>(now - start) > timeout)
     {
-      LogFileOutput("Listener::create_connection() - Failed to establish connection, timed out.\n");
+      LogFileOutput("Listener::create_connection() - Failed to establish "
+                    "connection, timed out.\n");
       return;
     }
   }
 
-  // We need to send an INIT to device 01 for this connection, then 02, ... until we get an error back
-  // This will determine the number of devices attached.
+  // We need to send an INIT to device 01 for this connection, then 02, ...
+  // until we get an error back This will determine the number of devices
+  // attached.
 
   bool still_scanning = true;
   uint8_t unit_id = 1;
@@ -140,6 +190,11 @@ void Listener::create_connection(unsigned int socket)
     InitRequest request(Requestor::next_request_number(), unit_id);
     const auto response = Requestor::send_request(request, conn.get());
     const auto init_response = dynamic_cast<InitResponse *>(response.get());
+    if (init_response == nullptr)
+    {
+      LogFileOutput("SmartPortOverSlip listener ERROR, no response data found\n");
+      break;
+    }
     still_scanning = init_response->get_status() == 0;
     if (still_scanning)
       unit_id++;
@@ -164,17 +219,20 @@ void Listener::stop()
   LogFileOutput("Listener::stop()\n");
   if (is_listening_)
   {
-    // Give our own thread time to stop while we stop the connections.
+    // Stop listener first, otherwise the PC might reboot too fast and be picked up
     is_listening_ = false;
+    LogFileOutput("Listener::stop() ... joining listener until it stops\n");
+    listening_thread_.join();
 
+    LogFileOutput("Listener::stop() ... informing connections they need to stop\n");
+    auto reboot_ = std::vector<uint8_t>(Connection::reboot_sequence.begin(), Connection::reboot_sequence.end());
     for (auto &pair : connection_map_)
     {
       const auto &connection = pair.second;
+      connection->send_data(reboot_);
       connection->set_is_connected(false);
       connection->join();
     }
-    LogFileOutput("Listener::stop() ... joining listener until it stops\n");
-    listening_thread_.join();
   }
   LogFileOutput("Listener::stop() ... finished\n");
 }

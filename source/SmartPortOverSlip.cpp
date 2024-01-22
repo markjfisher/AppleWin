@@ -113,7 +113,9 @@ void SmartPortOverSlip::handle_write()
 	const WORD sp_payload_loc = static_cast<WORD>(mem[cmd_list_loc + 2]) + static_cast<WORD>(mem[cmd_list_loc + 3] << 8);
 	const WORD params_loc = cmd_list_loc + 4;
 
-	LogFileOutput("SmartPortOverSlip processing SP command: 0x%02x, unit: 0x%02x, cmdList: 0x%04x, spPayLoad: 0x%04x, p1: 0x%02x\n", command, unit_number, cmd_list_loc, sp_payload_loc, mem[params_loc]);
+	// LogFileOutput("SmartPortOverSlip processing SP command: 0x%02x, unit: "
+	//	"0x%02x, cmdList: 0x%04x, spPayLoad: 0x%04x, p1: 0x%02x\n", 
+	//	command, unit_number, cmd_list_loc, sp_payload_loc, mem[params_loc]);
 
 	// Fix the stack so the RTS in the firmware returns to the instruction after the data
 	rts_location += 3;

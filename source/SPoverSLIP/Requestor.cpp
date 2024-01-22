@@ -1,8 +1,7 @@
-#include "StdAfx.h"
 
-#include <iostream>
 #include "Requestor.h"
 #include "Listener.h"
+#include <iostream>
 
 uint8_t Requestor::request_number_ = 0;
 

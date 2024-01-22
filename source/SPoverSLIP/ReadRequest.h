@@ -1,8 +1,9 @@
 ﻿#pragma once
 
-#include <vector>
-#include <cstdint>
+#include <algorithm>
 #include <array>
+#include <cstdint>
+#include <vector>
 
 #include "Request.h"
 #include "Response.h"

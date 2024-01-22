@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "CloseResponse.h"
 
 CloseResponse::CloseResponse(const uint8_t request_sequence_number, const uint8_t status) : Response(request_sequence_number, status) {}
