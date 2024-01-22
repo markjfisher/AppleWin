@@ -81,6 +81,7 @@ void TCPConnection::create_read_channel()
             if (valread == 0)
             {
               // disconnected, close connection, should remove it too: TODO
+              std::cout << "TCPConnection: recv == 0, disconnecting" << std::endl;
               self->set_is_connected(false);
             }
             if (valread > 0)
@@ -103,10 +104,10 @@ void TCPConnection::create_read_channel()
                 if (!packet.empty())
                 {
                   {
-                    std::lock_guard<std::mutex> lock(self->responses_mutex_);
-                    self->responses_[packet[0]] = packet;
+                    std::lock_guard<std::mutex> lock(self->data_mutex_);
+                    self->data_map_[packet[0]] = packet;
                   }
-                  self->response_cv_.notify_all();
+                  self->data_cv_.notify_all();
                 }
               }
             }

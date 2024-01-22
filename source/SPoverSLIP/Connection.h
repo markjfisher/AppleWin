@@ -32,9 +32,9 @@ private:
   std::atomic<bool> is_connected_{false};
 
 protected:
-  std::map<uint8_t, std::vector<uint8_t>> responses_;
+  std::map<uint8_t, std::vector<uint8_t>> data_map_;
   std::thread reading_thread_;
 
-  std::mutex responses_mutex_;
-  std::condition_variable response_cv_;
+  std::mutex data_mutex_;
+  std::condition_variable data_cv_;
 };
