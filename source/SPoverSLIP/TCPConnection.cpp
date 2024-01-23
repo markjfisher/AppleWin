@@ -9,12 +9,14 @@
   #include <winsock2.h>
   #pragma comment(lib, "ws2_32.lib")
   #define CLOSE_SOCKET closesocket
+  #define SHUTDOWN_SOCKET(s) shutdown(s, SD_SEND)
   #define SOCKET_ERROR_CODE WSAGetLastError()
 #else
   #include <sys/socket.h>
   #include <unistd.h>
   #include <errno.h>
   #define CLOSE_SOCKET close
+  #define SHUTDOWN_SOCKET(s) shutdown(s, SHUT_WR)
   #define SOCKET_ERROR_CODE errno
   #define INVALID_SOCKET -1
   #define SOCKET_ERROR -1
@@ -24,11 +26,27 @@
 #include "Log.h"
 #include "SLIP.h"
 
+void TCPConnection::close()
+{
+  if (socket_ != 0)
+  {
+    LogFileOutput("Closing TCPConnection socket\n");
+    if (SHUTDOWN_SOCKET(socket_) == SOCKET_ERROR)
+    {
+      LogFileOutput("Error shutting down socket, error code: %d\n", SOCKET_ERROR_CODE);
+    }
+    if (CLOSE_SOCKET(socket_) == SOCKET_ERROR)
+    {
+      LogFileOutput("Error closing socket, error code: %d\n", SOCKET_ERROR_CODE);
+    }
+  }
+  socket_ = 0;
+}
+
 void TCPConnection::send_data(const std::vector<uint8_t> &data)
 {
   if (data.empty())
   {
-    std::cerr << "TCPConnection::send_data No data was given to send" << std::endl;
     return;
   }
 
@@ -48,7 +66,7 @@ void TCPConnection::create_read_channel()
 
         // Set a timeout on the socket
         timeval timeout;
-        timeout.tv_sec = 5;
+        timeout.tv_sec = 1;
         timeout.tv_usec = 0;
         setsockopt(self->get_socket(), SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char *>(&timeout), sizeof(timeout));
 

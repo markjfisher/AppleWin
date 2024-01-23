@@ -141,14 +141,23 @@ INT_PTR CPageAdvanced::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, L
 				SetCopyProtectionDongleType(newCopyProtectionDongleMenuItem);
 			}
 			break;
+
+		//case IDC_SPOSLIP_PORT:
+		//	LogFileOutput("PageAdvanced: IDC_SPOSLIP_PORT, %04x\n", HIWORD(wparam));
+		//	break;
+
+		//case IDC_SPOSLIP_ADDRESS:
+		//	LogFileOutput("PageAdvanced: IDC_SPOSLIP_ADDRESS, %04x\n", HIWORD(wparam));
+		//	break;
+
 		}
 		break;
-
 	case WM_INITDIALOG:
 		{
 			SendDlgItemMessage(hWnd,IDC_SAVESTATE_FILENAME,WM_SETTEXT,0,(LPARAM)Snapshot_GetFilename().c_str());
 
 			CheckDlgButton(hWnd, IDC_SAVESTATE_ON_EXIT, g_bSaveStateOnExit ? BST_CHECKED : BST_UNCHECKED);
+                        CheckDlgButton(hWnd, IDC_SPOSLIP_ENABLE_LISTENER, GetSPoverSLIPListener().get_start_on_init() ? BST_CHECKED : BST_UNCHECKED);
 
 			if (GetCardMgr().IsParallelPrinterCardInstalled())
 			{
@@ -195,6 +204,23 @@ void CPageAdvanced::DlgOK(HWND hWnd)
 
 	g_bSaveStateOnExit = IsDlgButtonChecked(hWnd, IDC_SAVESTATE_ON_EXIT) ? true : false;
 	REGSAVE(TEXT(REGVALUE_SAVE_STATE_ON_EXIT), g_bSaveStateOnExit ? 1 : 0);
+
+	bool startSPListenerOnStartup = IsDlgButtonChecked(hWnd, IDC_SPOSLIP_ENABLE_LISTENER) ? true : false;
+        GetSPoverSLIPListener().set_start_on_init(startSPListenerOnStartup);
+        REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), startSPListenerOnStartup ? 1 : 0);
+
+	// if the user changed to "start" and we're not listening, start it.
+	// if the user unchecked start, then always stop
+	if (!GetSPoverSLIPListener().get_is_listening() && startSPListenerOnStartup)
+	{
+		// need to configure the address/port from the config too.
+                GetSPoverSLIPListener().Initialize("0.0.0.0", 1985);
+                GetSPoverSLIPListener().start();
+	}
+        else if (!startSPListenerOnStartup)
+	{
+                GetSPoverSLIPListener().stop();
+	}
 
 	// Save the copy protection dongle type
 	RegSetConfigGameIOConnectorNewDongleType(GAME_IO_CONNECTOR, GetCopyProtectionDongleType());

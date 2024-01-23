@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "StrFormat.h"
 #include "Log.h"
+#include "SPoverSLIP/Listener.h"
 
 void LogFileTimeUntilFirstKeyReadReset(void);
 void LogFileTimeUntilFirstKeyRead(void);
@@ -71,6 +72,8 @@ extern bool       g_bDisableDirectSound;				// Cmd line switch: don't init DS (s
 extern bool       g_bDisableDirectSoundMockingboard;	// Cmd line switch: don't init MB support
 
 class Pravets& GetPravets(void);
+
+extern class Listener &GetSPoverSLIPListener(void);
 
 //#define LOG_PERF_TIMINGS
 #ifdef LOG_PERF_TIMINGS

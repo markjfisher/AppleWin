@@ -10,9 +10,11 @@
 class Listener
 {
 public:
-  Listener(std::string ip_address, const uint16_t port);
-
+  // Listener(std::string ip_address, const uint16_t port);
+  Listener();
   ~Listener();
+
+  void Initialize(std::string ip_address, const uint16_t port);
 
   void start();
   void stop();
@@ -26,6 +28,8 @@ public:
   void insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection> &conn);
 
   static uint8_t get_total_device_count();
+  void set_start_on_init(bool should_start) { should_start_ = should_start; }
+  bool get_start_on_init() { return should_start_; }
 
 private:
   std::string ip_address_;
@@ -36,6 +40,7 @@ private:
   std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<Connection>> connection_map_;
 
   bool is_listening_;
+  bool should_start_;
   void create_connection(unsigned int socket);
   void listener_function();
 };

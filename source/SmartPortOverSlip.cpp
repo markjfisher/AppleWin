@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "YamlHelper.h"
 #include "SmartPortOverSlip.h"
+
+#include "Core.h"
 #include "Interface.h"
 #include "../Registry.h"
 
@@ -74,7 +76,7 @@ SmartPortOverSlip::SmartPortOverSlip(const UINT slot) : Card(CT_SmartPortOverSli
 	active_instances++;
 
 	LogFileOutput("SmartPortOverSlip ctor, slot: %d\n", slot);
-	create_listener();
+	// create_listener();
 	SmartPortOverSlip::Reset(true);
 }
 
@@ -82,11 +84,11 @@ SmartPortOverSlip::~SmartPortOverSlip()
 {
 	active_instances--;
 	LogFileOutput("SmartPortOverSlip destructor\n");
-	if (listener_ != nullptr)
-	{
-		listener_->stop();
-	}
-	listener_.reset();
+	//if (listener_ != nullptr)
+	//{
+	//	listener_->stop();
+	//}
+	//listener_.reset();
 }
 
 void SmartPortOverSlip::Reset(const bool powerCycle)
@@ -95,7 +97,7 @@ void SmartPortOverSlip::Reset(const bool powerCycle)
 	if (powerCycle)
 	{
 		// send RESET to all devices
-		const auto connections = listener_->get_all_connections();
+                const auto connections = GetSPoverSLIPListener().get_all_connections();
 		for (const auto& id_and_connection : connections) {
 			reset(id_and_connection.first, id_and_connection.second);
 		}
@@ -129,7 +131,7 @@ void SmartPortOverSlip::handle_write()
 		return;
 	}
 
-	const auto id_and_connection = listener_->find_connection_with_device(unit_number);
+	const auto id_and_connection = GetSPoverSLIPListener().find_connection_with_device(unit_number);
 	if (id_and_connection.second == nullptr)
 	{
 		regs.a = 1;		// TODO: what value should we error with?
@@ -389,20 +391,20 @@ bool SmartPortOverSlip::LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT versio
 	return true;
 }
 
-void SmartPortOverSlip::create_listener()
-{
-	// grab the configured IP and Port TODO
-
-	listener_ = std::make_unique<Listener>("0.0.0.0", 1985);
-	listener_->start();
-	LogFileOutput("SmartPortOverSlip Created SP over SLIP listener on 0.0.0.0:1985\n");
-}
+//void SmartPortOverSlip::create_listener()
+//{
+//	// grab the configured IP and Port TODO
+//
+//	//listener_ = std::make_unique<Listener>("0.0.0.0", 1985);
+//	//listener_->start();
+//	//LogFileOutput("SmartPortOverSlip Created SP over SLIP listener on 0.0.0.0:1985\n");
+//}
 
 void SmartPortOverSlip::Destroy()
 {
 	// Stop the listener and its connections
-	if (listener_ != nullptr)
-	{
-		listener_->stop();
-	}
+	//if (listener_ != nullptr)
+	//{
+	//	listener_->stop();
+	//}
 }

@@ -37,9 +37,23 @@
 
 uint8_t Listener::next_device_id_ = 1;
 
-Listener::Listener(std::string ip_address, const uint16_t port)
-    : ip_address_(std::move(ip_address)), port_(port), is_listening_(false)
+Listener& GetSPoverSLIPListener(void)
 {
+  static Listener listener;
+  return listener;
+}
+
+Listener::Listener() : is_listening_(false) {}
+
+//Listener::Listener(std::string ip_address, const uint16_t port)
+//    : ip_address_(std::move(ip_address)), port_(port), is_listening_(false)
+//{
+//}
+
+void Listener::Initialize(std::string ip_address, const uint16_t port)
+{
+  ip_address_ = std::move(ip_address);
+  port_ = port;
 }
 
 bool Listener::get_is_listening() const { return is_listening_; }
@@ -68,7 +82,9 @@ void Listener::listener_function()
 
 #ifdef WIN32
   WSADATA wsa_data;
-  WSAStartup(MAKEWORD(2, 2), &wsa_data);
+  if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) {
+    LogFileOutput("WSAStartup failed: %d\n", WSAGetLastError());
+  }
 #endif
 
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
@@ -149,9 +165,6 @@ void Listener::listener_function()
   LogFileOutput("Listener::listener_function - listener closing down\n");
 
   CLOSE_SOCKET(server_fd);
-#ifdef WIN32
-  WSACleanup();
-#endif
 }
 
 // Creates a Connection object, which is how SP device(s) will register itself with our listener.
@@ -224,16 +237,24 @@ void Listener::stop()
     LogFileOutput("Listener::stop() ... joining listener until it stops\n");
     listening_thread_.join();
 
-    LogFileOutput("Listener::stop() ... informing connections they need to stop\n");
-    auto reboot_ = std::vector<uint8_t>(Connection::reboot_sequence.begin(), Connection::reboot_sequence.end());
+    LogFileOutput("Listener::stop() - closing %d connections\n", connection_map_.size());
     for (auto &pair : connection_map_)
     {
       const auto &connection = pair.second;
-      connection->send_data(reboot_);
       connection->set_is_connected(false);
+      connection->close();
       connection->join();
     }
   }
+  port_ = 0;
+  ip_address_.clear();
+  next_device_id_ = 1;
+  connection_map_.clear();
+
+#ifdef WIN32
+  WSACleanup();
+#endif
+
   LogFileOutput("Listener::stop() ... finished\n");
 }
 

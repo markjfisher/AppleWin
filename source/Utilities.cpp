@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CopyProtectionDongles.h"
 
 #include "Configuration/IPropertySheet.h"
+#include "Configuration/PropertySheetHelper.h"
 #include "Tfe/PCapBackend.h"
 
 #ifdef USE_SPEECH_API
@@ -94,6 +95,23 @@ void LoadConfiguration(bool loadImages)
 	DWORD dwComputerType = 0;
 	eApple2Type apple2Type = A2TYPE_APPLE2EENHANCED;
 
+	DWORD dwSmartPortListener = 0;
+	bool startListener = true;		// default if there's no config
+	if (REGLOAD(TEXT(REGVALUE_START_SP_SLIP_LISTENER), &dwSmartPortListener))
+	{
+                startListener = dwSmartPortListener ? true : false;
+	}
+
+	if (startListener)
+	{
+		// TODO: add the address port from config and prefs
+		GetSPoverSLIPListener().Initialize("0.0.0.0", 1985);
+		GetSPoverSLIPListener().start();
+	}
+
+	// Store the value so that if we open the preferences, we can fetch it to set the current state of the checkbox
+        GetSPoverSLIPListener().set_start_on_init(startListener);
+
 	if (REGLOAD(TEXT(REGVALUE_APPLE2_TYPE), &dwComputerType))
 	{
 		const DWORD dwLoadedComputerType = dwComputerType;
@@ -117,8 +135,8 @@ void LoadConfiguration(bool loadImages)
 			LogFileOutput("%s\n", strText.c_str());
 
 			GetFrame().FrameMessageBox(strText.c_str(),
-									   "Load Configuration",
-									   MB_ICONSTOP | MB_SETFOREGROUND);
+										 "Load Configuration",
+										 MB_ICONSTOP | MB_SETFOREGROUND);
 
 			GetPropertySheet().ConfigSaveApple2Type((eApple2Type)dwComputerType);
 		}
@@ -534,6 +552,7 @@ void ResetMachineState()
 
 	SoundCore_SetFade(FADE_NONE);
 	LogFileTimeUntilFirstKeyReadReset();
+	// GetSPoverSLIPListener().stop(); // We may not need to stop the listener. The card is reset, so that will send device resets, but SP over SLIP layer can stay alive
 }
 
 
