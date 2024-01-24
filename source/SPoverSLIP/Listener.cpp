@@ -242,7 +242,7 @@ void Listener::stop()
     {
       const auto &connection = pair.second;
       connection->set_is_connected(false);
-      connection->close();
+      connection->close_connection();
       connection->join();
     }
   }
