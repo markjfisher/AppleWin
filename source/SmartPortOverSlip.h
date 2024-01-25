@@ -8,6 +8,7 @@
 #include "CPU.h"
 #include "SPoverSLIP/Listener.h"
 #include "SPoverSLIP/Response.h"
+#include "SPoverSLIP/StatusResponse.h"
 
 class ControlResponse;
 class InitResponse;
@@ -45,8 +46,8 @@ public:
 
     BYTE io_write0(WORD programCounter, WORD address, BYTE value, ULONG nCycles);
     static void device_count(WORD sp_payload_loc);
-    void handle_write();
-    void status(BYTE unit_number, Connection* connection, WORD sp_payload_loc, BYTE status_code);
+    void handle_smartport_call();
+    void handle_prodos_call();
     void control(BYTE unit_number, Connection* connection, WORD sp_payload_loc, BYTE control_code);
     void init(BYTE unit_number, Connection* connection);
     void open(BYTE unit_number, Connection* connection);
@@ -58,13 +59,17 @@ public:
     void read(BYTE unit_number, Connection* connection, WORD sp_payload_loc, WORD params_loc);
     void write(BYTE unit_number, Connection* connection, WORD sp_payload_loc, WORD params_loc);
 
+    std::unique_ptr<Response> status(BYTE unit_number, Connection *connection, BYTE status_code);
+    std::unique_ptr<StatusResponse> status_pd(const BYTE unit_number, Connection *connection, const BYTE status_code);
+    void status_sp(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const BYTE status_code);
+
+    void handle_prodos_status(uint8_t drive_num, std::pair<int, int> disk_devices);
+    void handle_prodos_read(uint8_t drive_num, std::pair<int, int> disk_devices);
+
     static void set_processor_status(const uint8_t flags) { regs.ps |= flags; }
     static void unset_processor_status(const uint8_t flags) { regs.ps &= (0xFF - flags); }
     // if condition is true then set the flags given, else remove them.
     static void update_processor_status(const bool condition, const uint8_t flags) { condition ? set_processor_status(flags) : unset_processor_status(flags); }
-
-    // SP over SLIP
-    // void create_listener();
 
     template <typename T>
     void handle_simple_response(const std::unique_ptr<Response> response) {
@@ -89,7 +94,7 @@ public:
     }
 
     template <typename T, typename Func>
-    void handle_response(const std::unique_ptr<Response> response, Func call_back) {
+    void handle_response(const std::unique_ptr<Response> response, Func call_back, int error_code = 1) {
         auto specific_response = dynamic_cast<T*>(response.get());
 
         if (specific_response != nullptr)
@@ -111,15 +116,13 @@ public:
         else
         {
             // An error trying to do the request, as there was no response
-            regs.a = 1;        // TODO: what error should we return?
+            regs.a = error_code;
             regs.x = 0;
             regs.y = 0;
             unset_processor_status(AF_ZERO);
         }
     }
 private:
-    // std::unique_ptr<Listener> listener_;
-
     // Ensure no more than 1 card is active as it can cater for all connections to external devices
     static int active_instances;
 };

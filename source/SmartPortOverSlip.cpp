@@ -76,19 +76,13 @@ SmartPortOverSlip::SmartPortOverSlip(const UINT slot) : Card(CT_SmartPortOverSli
 	active_instances++;
 
 	LogFileOutput("SmartPortOverSlip ctor, slot: %d\n", slot);
-	// create_listener();
-	SmartPortOverSlip::Reset(true);
+	// SmartPortOverSlip::Reset(true);
 }
 
 SmartPortOverSlip::~SmartPortOverSlip()
 {
 	active_instances--;
 	LogFileOutput("SmartPortOverSlip destructor\n");
-	//if (listener_ != nullptr)
-	//{
-	//	listener_->stop();
-	//}
-	//listener_.reset();
 }
 
 void SmartPortOverSlip::Reset(const bool powerCycle)
@@ -104,7 +98,7 @@ void SmartPortOverSlip::Reset(const bool powerCycle)
 	}
 }
 
-void SmartPortOverSlip::handle_write()
+void SmartPortOverSlip::handle_smartport_call()
 {
 	// stack pointer location holds the data we need to service this request
 	WORD rts_location = static_cast<WORD>(mem[regs.sp + 1]) + static_cast<WORD>(mem[regs.sp + 2] << 8);
@@ -124,7 +118,7 @@ void SmartPortOverSlip::handle_write()
 	mem[regs.sp + 1] = rts_location & 0xff;
 	mem[regs.sp + 2] = (rts_location >> 8) & 0xff;
 
-	// Deal with DIB, doesn't need connection details.
+	// Deal with unit 0, status 0 call to return device count, doesn't need connection details.
 	if (unit_number == 0 && mem[params_loc] == 0)
 	{
 		device_count(sp_payload_loc);
@@ -141,45 +135,42 @@ void SmartPortOverSlip::handle_write()
 		return;
 	}
 
-	const auto lower_device_id = id_and_connection.first;
+	const auto device_id = id_and_connection.first;
 	const auto connection = id_and_connection.second.get();
-
-	// convert the unit_number given to the id of the target connection, as we may have more than one connection
-	const auto target_unit_id = static_cast<uint8_t>(unit_number - lower_device_id + 1);
 
 	switch (command) {
 	case SP_CMD_STATUS:
-		status(target_unit_id, connection, sp_payload_loc, mem[params_loc]);
+		status_sp(device_id, connection, sp_payload_loc, mem[params_loc]);
 		break;
 	case SP_CMD_READBLOCK:
-		read_block(target_unit_id, connection, sp_payload_loc, params_loc);
+		read_block(device_id, connection, sp_payload_loc, params_loc);
 		break;
 	case SP_CMD_WRITEBLOCK:
-		write_block(target_unit_id, connection, sp_payload_loc, params_loc);
+		write_block(device_id, connection, sp_payload_loc, params_loc);
 		break;
 	case SP_CMD_FORMAT:
-		format(target_unit_id, connection);
+		format(device_id, connection);
 		break;
 	case SP_CMD_CONTROL:
-		control(target_unit_id, connection, sp_payload_loc, mem[params_loc]);
+		control(device_id, connection, sp_payload_loc, mem[params_loc]);
 		break;
 	case SP_CMD_INIT:
-		init(target_unit_id, connection);
+		init(device_id, connection);
 		break;
 	case SP_CMD_OPEN:
-		open(target_unit_id, connection);
+		open(device_id, connection);
 		break;
 	case SP_CMD_CLOSE:
-		close(target_unit_id, connection);
+		close(device_id, connection);
 		break;
 	case SP_CMD_READ:
-		read(target_unit_id, connection, sp_payload_loc, params_loc);
+		read(device_id, connection, sp_payload_loc, params_loc);
 		break;
 	case SP_CMD_WRITE:
-		write(target_unit_id, connection, sp_payload_loc, params_loc);
+		write(device_id, connection, sp_payload_loc, params_loc);
 		break;
 	case SP_CMD_RESET:
-		reset(target_unit_id, connection);
+		reset(device_id, connection);
 		break;
 	default:
 		break;
@@ -187,13 +178,166 @@ void SmartPortOverSlip::handle_write()
 
 }
 
+void SmartPortOverSlip::handle_prodos_call()
+{
+	// See https://prodos8.com/docs/techref/adding-routines-to-prodos/
+	// $42 = COMMAND:
+	//   0 = STATUS
+	//   1 = READ
+	//   2 = WRITE
+	//   3 = FORMAT
+
+	// $43 = UNIT NUMBER, bits 4,5,6 = SLOT, if bit 8 = 0, D1, if bit 8 = 1, D2
+	// $44,45 = BUFFER POINTER
+	// $46,47 = BLOCK NUMBER
+
+	// Error codes (returned in A)
+	// $27 = I/O error
+	// $28 = No device Connected
+	// $2B = Write Protected
+
+	// Let's get the Drive Num and Slot first
+        const uint8_t drive_num = (mem[0x43] & 0x80) == 0 ? 1 : 2;
+        const uint8_t slot_num = (mem[0x43] & 0x70) >> 4;
+        const uint8_t command = mem[0x42];
+
+	LogFileOutput("SmartPortOverSlip prodos, drive_num: %d, slot_num: %d, command: %d\n", drive_num, slot_num, command);
+
+	if (slot_num != m_slot) {
+		// not for us... could be mirroring/moving? ignoring for now. see https://www.1000bit.it/support/manuali/apple/technotes/pdos/tn.pdos.20.html
+                regs.a = 0x28;
+                regs.x = 0;
+                regs.y = 0;
+                return;
+	}
+
+	// The Listener currently holds the information about mappings for device ids to devices.
+	// We need to look for the first registered device of all connections to us that are disks, and use first 2 as our drives.
+
+	// we can call the listener to do this for us, and it can cache the results so we can keep calling it
+        std::pair<int, int> disk_devices = GetSPoverSLIPListener().first_two_disk_devices();
+	if ((drive_num == 1 && disk_devices.first == -1) || (drive_num == 2 && disk_devices.second == -1)) {
+		// there is no drive to support this request, so return an error
+                regs.a = 0x28;
+                regs.x = 0;
+                regs.y = 0;
+                return;
+	}
+
+        switch (command)
+        {
+        case 0x00:
+                handle_prodos_status(drive_num, disk_devices);
+                return;
+		break;
+        case 0x01:
+                handle_prodos_read(drive_num, disk_devices);
+                return;
+                break;
+        case 0x02:
+		// write
+		break;
+        case 0x03:
+		// format
+                break;
+        default:
+		// error
+                break;
+	}
+
+	regs.a = 0x28;
+        regs.x = 0;
+        regs.y = 0;
+}
+
+void SmartPortOverSlip::handle_prodos_status(uint8_t drive_num, std::pair<int, int> disk_devices)
+{
+        /*
+        From: https://prodos8.com/docs/techref/adding-routines-to-prodos/
+        The STATUS call should perform a check to verify that the device is ready for a READ or WRITE. If it is not, the carry should
+        be set and the appropriate error code returned in the accumulator. If the device is ready for a READ or WRITE, then the driver
+        should clear the carry, place a zero in the accumulator, and return the number of blocks on the device in the
+        X-register (low-byte) and Y-register (high-byte).
+        */
+        auto device_id = drive_num == 1 ? disk_devices.first : disk_devices.second;
+        auto id_connection = GetSPoverSLIPListener().find_connection_with_device(device_id);
+        std::unique_ptr<StatusResponse> response = status_pd(id_connection.first, id_connection.second.get(), 0);
+        // the first byte of the data in the status response:
+        /*
+          // Bit 7: Block  device
+          // Bit 6: Write allowed
+          // Bit 5: Read allowed
+          // Bit 4: Device online or disk in drive
+          // Bit 3: Format allowed
+          // Bit 2: Media write protected (block devices only)
+          // Bit 1: Currently interrupting (//c only)
+          // Bit 0: Disk switched
+        */
+        const auto& status_data = response->get_data();
+        if (status_data.size() != 25)
+        {
+                // check bits 5/6 set for R/W, and the disk is online bit 4.
+                uint8_t c = status_data[0] & 0x70;
+                if (c == 0x70)
+                {
+                        // we're good, clear carry, set a = 0, and set x/y
+                        LogFileOutput("SmartPortOverSlip Prodos Status OK x: %02x, y: %02x\n", status_data[1], status_data[2]);
+                        regs.a = 0;
+                        regs.x = status_data[1];
+                        regs.y = status_data[2];
+                        unset_processor_status(AF_ZERO);
+                }
+                else
+                {
+                        LogFileOutput("SmartPortOverSlip Prodos, Status bits did not match 0x70, found: 0x%02x\n", c);
+                        regs.a = 0x27;
+                        regs.x = 0;
+                        regs.y = 0;
+                }
+        }
+        else
+        {
+                // status wasn't long enough, return an IO error
+                LogFileOutput("SmartPortOverSlip Prodos Status, Bad DIB returned\n");
+                regs.a = 0x27;
+                regs.x = 0;
+                regs.y = 0;
+        }
+}
+
+void SmartPortOverSlip::handle_prodos_read(uint8_t drive_num, std::pair<int, int> disk_devices)
+{
+	// $44-$45 = buffer pointer
+        WORD buffer_location = static_cast<WORD>(mem[0x44]) + static_cast<WORD>(mem[0x45] << 8);
+        auto device_id = drive_num == 1 ? disk_devices.first : disk_devices.second;
+        auto id_connection = GetSPoverSLIPListener().find_connection_with_device(device_id);
+
+	// Do a ReadRequest, and shove the 512 byte block into the required memory
+        ReadBlockRequest request(Requestor::next_request_number(), id_connection.first);
+	// $46-47 = Block Number
+        request.set_block_number_from_bytes(mem[0x46], mem[0x47], 0);
+        auto response = Requestor::send_request(request, id_connection.second.get());
+
+        handle_response<ReadBlockResponse>(std::move(response), [this, buffer_location](const ReadBlockResponse *rbr) {
+		memcpy(mem + buffer_location, rbr->get_block_data().data(), 512);
+		regs.a = 0;
+		regs.x = 0;
+		regs.y = 2; // 512 bytes
+	}, 0x27);
+}
+
 BYTE SmartPortOverSlip::io_write0(WORD programCounter, const WORD address, const BYTE value, ULONG nCycles)
 {
 	const uint8_t loc = address & 0x0f;
-	// Only do something if $65 is sent to address $02
+	// SP = $65 in $02
 	if (value == 0x65 && loc == 0x02)
 	{
-		handle_write();
+		handle_smartport_call();
+        }
+	// ProDos = $66 in $02
+	else if (value == 0x66 && loc == 0x02)
+	{
+                handle_prodos_call();
 	}
 	return 0;
 }
@@ -215,15 +359,15 @@ void SmartPortOverSlip::device_count(const WORD sp_payload_loc)
 	set_processor_status(AF_ZERO);
 }
 
-void SmartPortOverSlip::read_block(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const WORD params_loc)
+void SmartPortOverSlip::read_block(const BYTE unit_number, Connection* connection, const WORD buffer_location, const WORD block_count_address)
 {
 	ReadBlockRequest request(Requestor::next_request_number(), unit_number);
-	// Assume that (cmd_list_loc + 4 == params_loc) holds 3 bytes for the block number. If it's in the payload, this is wrong and will have to be fixed.
-	request.set_block_number_from_ptr(mem, params_loc);
+	// Assume that (cmd_list_loc + 4 == block_count_address) holds 3 bytes for the block number. If it's in the payload, this is wrong and will have to be fixed.
+	request.set_block_number_from_ptr(mem, block_count_address);
 	auto response = Requestor::send_request(request, connection);
 
-	handle_response<ReadBlockResponse>(std::move(response), [this, sp_payload_loc](const ReadBlockResponse* rbr) {
-		memcpy(mem + sp_payload_loc, rbr->get_block_data().data(), 512);
+	handle_response<ReadBlockResponse>(std::move(response), [this, buffer_location](const ReadBlockResponse* rbr) {
+		memcpy(mem + buffer_location, rbr->get_block_data().data(), 512);
 		regs.a = 0;
 		regs.x = 0;
 		regs.y = 2; // 512 bytes
@@ -270,11 +414,9 @@ void SmartPortOverSlip::write(const BYTE unit_number, Connection* connection, co
 	handle_simple_response<WriteResponse>(std::move(response));
 }
 
-void SmartPortOverSlip::status(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const BYTE status_code)
+void SmartPortOverSlip::status_sp(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const BYTE status_code)
 {
-	// see https://www.1000bit.it/support/manuali/apple/technotes/smpt/tn.smpt.2.html
-	const StatusRequest request(Requestor::next_request_number(), unit_number, status_code);
-	auto response = Requestor::send_request(request, connection);
+        auto response = status(unit_number, connection, status_code);
 	handle_response<StatusResponse>(std::move(response), [sp_payload_loc](const StatusResponse* sr) {
 		const auto response_size = sr->get_data().size();
 		memcpy(mem + sp_payload_loc, sr->get_data().data(), response_size);
@@ -282,6 +424,29 @@ void SmartPortOverSlip::status(const BYTE unit_number, Connection* connection, c
 		regs.x = response_size & 0xff;
 		regs.y = (response_size >> 8) & 0xff;
 	});
+}
+
+std::unique_ptr<Response> SmartPortOverSlip::status(const BYTE unit_number, Connection *connection, const BYTE status_code)
+{
+	// see https://www.1000bit.it/support/manuali/apple/technotes/smpt/tn.smpt.2.html
+        const StatusRequest request(Requestor::next_request_number(), unit_number, status_code);
+        return Requestor::send_request(request, connection);
+
+}
+
+std::unique_ptr<StatusResponse> SmartPortOverSlip::status_pd(const BYTE unit_number, Connection *connection, const BYTE status_code)
+{
+        auto response = status(unit_number, connection, status_code);
+
+        // Cast the Response to a StatusResponse. We need to release ownership. As ChatGPT explains:
+        /*
+        You have a std::unique_ptr<Response> and you want to return a std::unique_ptr<StatusResponse>.
+        You can't simply cast the std::unique_ptr<Response> to std::unique_ptr<StatusResponse>, because this would create two std::unique_ptrs
+        (the original one and the cast one) that own the same object, which is not allowed.
+        */
+	return std::unique_ptr<StatusResponse>(static_cast<StatusResponse *>(response.release()));
+
+
 }
 
 void SmartPortOverSlip::control(const BYTE unit_number, Connection* connection, const WORD sp_payload_loc, const BYTE control_code)
@@ -391,20 +556,6 @@ bool SmartPortOverSlip::LoadSnapshot(YamlLoadHelper& yamlLoadHelper, UINT versio
 	return true;
 }
 
-//void SmartPortOverSlip::create_listener()
-//{
-//	// grab the configured IP and Port TODO
-//
-//	//listener_ = std::make_unique<Listener>("0.0.0.0", 1985);
-//	//listener_->start();
-//	//LogFileOutput("SmartPortOverSlip Created SP over SLIP listener on 0.0.0.0:1985\n");
-//}
-
 void SmartPortOverSlip::Destroy()
 {
-	// Stop the listener and its connections
-	//if (listener_ != nullptr)
-	//{
-	//	listener_->stop();
-	//}
 }

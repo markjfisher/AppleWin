@@ -30,6 +30,7 @@ public:
   static uint8_t get_total_device_count();
   void set_start_on_init(bool should_start) { should_start_ = should_start; }
   bool get_start_on_init() { return should_start_; }
+  std::pair<int, int> first_two_disk_devices() const;
 
 private:
   std::string ip_address_;
@@ -38,6 +39,8 @@ private:
   std::thread listening_thread_;
   static uint8_t next_device_id_;
   std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<Connection>> connection_map_;
+  mutable std::pair<int, int> cached_disk_devices;
+  mutable bool cache_valid = false;
 
   bool is_listening_;
   bool should_start_;

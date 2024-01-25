@@ -39,3 +39,10 @@ void ReadBlockRequest::set_block_number_from_ptr(const uint8_t *ptr, const size_
 {
   std::copy_n(ptr + offset, block_number_.size(), block_number_.begin());
 }
+
+void ReadBlockRequest::set_block_number_from_bytes(uint8_t l, uint8_t m, uint8_t h)
+{
+  block_number_[0] = l;
+  block_number_[1] = m;
+  block_number_[2] = h;
+}

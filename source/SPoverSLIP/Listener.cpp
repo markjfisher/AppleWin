@@ -10,6 +10,8 @@
 #include "InitResponse.h"
 #include "SLIP.h"
 #include "TCPConnection.h"
+#include "StatusRequest.h"
+#include "StatusResponse.h"
 
 #include "Log.h"
 #include "Requestor.h"
@@ -28,6 +30,8 @@
   #include <sys/socket.h>
   #include <sys/types.h>
   #include <unistd.h>
+#include "StatusRequest.h"
+#include "StatusRequest.h"
   #define CLOSE_SOCKET close
   #define SOCKET_ERROR_CODE errno
   #define INVALID_SOCKET -1
@@ -258,7 +262,10 @@ void Listener::stop()
   LogFileOutput("Listener::stop() ... finished\n");
 }
 
-// Returns the lower bound of the device id, and connection.
+// Returns the ADJUSTED lower bound of the device id, and connection.
+// i.e. the ID that the target thinks the device index is.
+// We store (for example) device_ids in applewin with values 1-5 for connection 1, 6-8 for connection 2, but each device things they are 1-5, and 1-3 (not 6-8).
+// However the apple side sees 1-8, and so we have to convert 6, 7, 8 into the target's 1, 2, 3
 std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_device(const uint8_t device_id) const
 {
   std::pair<uint8_t, std::shared_ptr<Connection>> result;
@@ -266,7 +273,7 @@ std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_d
   {
     if (device_id >= kv.first.first && device_id <= kv.first.second)
     {
-      result = std::make_pair(kv.first.first, kv.second);
+      result = std::make_pair(device_id - kv.first.first + 1, kv.second);
       break;
     }
   }
@@ -284,4 +291,49 @@ std::vector<std::pair<uint8_t, Connection *>> Listener::get_all_connections() co
     }
   }
   return connections;
+}
+
+std::pair<int, int> Listener::first_two_disk_devices() const {
+    if (cache_valid) {
+        return cached_disk_devices;
+    }
+
+    cached_disk_devices = {-1, -1}; // Initialize with invalid device ids
+
+    for (uint8_t unit_number = 1; unit_number < next_device_id_; ++unit_number) {
+        const auto id_and_connection = GetSPoverSLIPListener().find_connection_with_device(unit_number);
+        if (id_and_connection.second == nullptr) continue;
+
+        // ids from the map need adjusting down to their real ids on the device
+
+
+        // DIB request to get information block
+        const StatusRequest request(Requestor::next_request_number(), unit_number, 3);
+
+
+        std::unique_ptr<Response> response = Requestor::send_request(request, id_and_connection.second.get());
+
+        // Cast the Response to a StatusResponse
+        StatusResponse* statusResponse = dynamic_cast<StatusResponse*>(response.get());
+
+        if (statusResponse) {
+            const std::vector<uint8_t>& data = statusResponse->get_data();
+
+            // Check if data size is at least 22 and the device type is a disk, and that the disk status is ONLINE (status[0] bit 4)
+            if (data.size() >= 22 && (data[21] == 0x01 || data[21] == 0x02 || data[21] == 0x0A) && ((data[0] & 0x10) == 0x10)) {
+                // If first disk device id is not set, set it
+                if (cached_disk_devices.first == -1) {
+                    cached_disk_devices.first = unit_number;
+                }
+                // Else if second disk device id is not set, set it and break the loop
+                else if (cached_disk_devices.second == -1) {
+                    cached_disk_devices.second = unit_number;
+                    break;
+                }
+            }
+        }
+    }
+
+    cache_valid = true;
+    return cached_disk_devices;
 }
