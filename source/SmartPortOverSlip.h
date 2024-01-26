@@ -65,6 +65,7 @@ public:
 
     void handle_prodos_status(uint8_t drive_num, std::pair<int, int> disk_devices);
     void handle_prodos_read(uint8_t drive_num, std::pair<int, int> disk_devices);
+    void handle_prodos_write(uint8_t drive_num, std::pair<int, int> disk_devices);
 
     static void set_processor_status(const uint8_t flags) { regs.ps |= flags; }
     static void unset_processor_status(const uint8_t flags) { regs.ps &= (0xFF - flags); }

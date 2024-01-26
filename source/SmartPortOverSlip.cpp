@@ -228,26 +228,27 @@ void SmartPortOverSlip::handle_prodos_call()
         {
         case 0x00:
                 handle_prodos_status(drive_num, disk_devices);
-                return;
 		break;
         case 0x01:
                 handle_prodos_read(drive_num, disk_devices);
-                return;
                 break;
         case 0x02:
-		// write
+		handle_prodos_write(drive_num, disk_devices);
 		break;
         case 0x03:
-		// format
+		// format, TBD - send IO error for now
+		regs.a = 0x27;
+		regs.x = 0;
+		regs.y = 0;
                 break;
         default:
-		// error
+		// error, unknown command
+		regs.a = 0x28;
+		regs.x = 0;
+		regs.y = 0;
                 break;
 	}
 
-	regs.a = 0x28;
-        regs.x = 0;
-        regs.y = 0;
 }
 
 void SmartPortOverSlip::handle_prodos_status(uint8_t drive_num, std::pair<int, int> disk_devices)
@@ -320,6 +321,27 @@ void SmartPortOverSlip::handle_prodos_read(uint8_t drive_num, std::pair<int, int
 
         handle_response<ReadBlockResponse>(std::move(response), [this, buffer_location](const ReadBlockResponse *rbr) {
 		memcpy(mem + buffer_location, rbr->get_block_data().data(), 512);
+		regs.a = 0;
+		regs.x = 0;
+		regs.y = 2; // 512 bytes
+	}, 0x27);
+}
+
+void SmartPortOverSlip::handle_prodos_write(uint8_t drive_num, std::pair<int, int> disk_devices)
+{
+	// $44-$45 = buffer pointer
+        WORD buffer_location = static_cast<WORD>(mem[0x44]) + static_cast<WORD>(mem[0x45] << 8);
+        auto device_id = drive_num == 1 ? disk_devices.first : disk_devices.second;
+        auto id_connection = GetSPoverSLIPListener().find_connection_with_device(device_id);
+
+        WriteBlockRequest request(Requestor::next_request_number(), id_connection.first);
+	// $46-47 = Block Number
+        request.set_block_number_from_bytes(mem[0x46], mem[0x47], 0);
+	// put data into the request we're sending
+	request.set_block_data_from_ptr(mem, buffer_location);
+        auto response = Requestor::send_request(request, id_connection.second.get());
+
+        handle_response<WriteBlockResponse>(std::move(response), [this, buffer_location](const WriteBlockResponse *rbr) {
 		regs.a = 0;
 		regs.x = 0;
 		regs.y = 2; // 512 bytes
