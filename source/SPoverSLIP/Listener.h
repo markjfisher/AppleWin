@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <mutex>
+#include <regex>
+#include <cstdint>
 #include <string>
 #include <thread>
 
@@ -32,6 +34,26 @@ public:
   bool get_start_on_init() { return should_start_; }
   std::pair<int, int> first_two_disk_devices() const;
 
+  // default values for listener
+  bool default_start_listener = true;
+  std::string default_listener_address = "0.0.0.0";
+  //std::array<char, 16> default_listener_address_array = { "0.0.0.0" };
+  uint16_t default_port = 1985;
+
+  std::string get_ip_address() const { return ip_address_; }
+  std::string check_and_set_ip_address(const std::string& ip_address) {
+	if (is_valid_ip_address(ip_address)) {
+		ip_address_ = ip_address;
+	} else {
+		ip_address_ = default_listener_address;
+	}
+	return ip_address_;
+  }
+
+  uint16_t get_port() const { return port_; }
+  void set_port(uint16_t port) { port_ = port; }
+
+
 private:
   std::string ip_address_;
   uint16_t port_;
@@ -46,4 +68,8 @@ private:
   bool should_start_;
   void create_connection(unsigned int socket);
   void listener_function();
+  bool is_valid_ip_address(const std::string &ipAddress) { return std::regex_match(ipAddress, ipPattern); }
+
+  static const std::regex ipPattern;
+
 };

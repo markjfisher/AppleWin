@@ -27,6 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "StdAfx.h"
 
+#include <climits>
+#include <regex>
+#include <stdexcept>
+#include <string>
+
 #include "Utilities.h"
 #include "Core.h"
 #include "CardManager.h"
@@ -95,22 +100,42 @@ void LoadConfiguration(bool loadImages)
 	DWORD dwComputerType = 0;
 	eApple2Type apple2Type = A2TYPE_APPLE2EENHANCED;
 
-	DWORD dwSmartPortListener = 0;
-	bool startListener = true;		// default if there's no config
-	if (REGLOAD(TEXT(REGVALUE_START_SP_SLIP_LISTENER), &dwSmartPortListener))
+	///////////////////////////////////////////////////////////////
+	// SmartPort over SLIP
+	auto& listener = GetSPoverSLIPListener();
+	DWORD dwRegStartListener = 0;
+	bool bStartListener = listener.default_start_listener;
+	TCHAR tcAddress[16];
+	strncpy(tcAddress, listener.default_listener_address.data(), 15);
+	tcAddress[15] = '\0'; // ensure it's null terminated in worst case 111.111.111.111
+	DWORD dwPort = static_cast<DWORD>(listener.default_port);
+	if (REGLOAD(TEXT(REGVALUE_START_SP_SLIP_LISTENER), &dwRegStartListener))
 	{
-                startListener = dwSmartPortListener ? true : false;
+		bStartListener = dwRegStartListener ? true : false;
+		RegLoadString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, tcAddress, 16, listener.default_listener_address.c_str());
+		REGLOAD_DEFAULT(TEXT(REGVALUE_SP_LISTENER_PORT), &dwPort, listener.default_port);
 	}
 
-	if (startListener)
+	std::string listener_address(tcAddress);
+	listener_address = listener.check_and_set_ip_address(listener_address);
+
+	// check the input number wasn't too small or too large as DWORD is 4 bytes, port is only 2.
+	// Could be running as root (the horror) and get a port <1024
+	if (dwPort > 65535 || dwPort == 0) {
+		dwPort = 1985;
+	}
+	uint16_t port = static_cast<uint16_t>(dwPort);
+
+	if (bStartListener)
 	{
-		// TODO: add the address port from config and prefs
-		GetSPoverSLIPListener().Initialize("0.0.0.0", 1985);
-		GetSPoverSLIPListener().start();
+		listener.Initialize(listener_address, port);
+		listener.start();
 	}
 
-	// Store the value so that if we open the preferences, we can fetch it to set the current state of the checkbox
-        GetSPoverSLIPListener().set_start_on_init(startListener);
+	// Store the values so that if we open the preferences, we can fetch it to set the current state of the checkbox
+	listener.set_start_on_init(bStartListener);
+	listener.set_port(port);
+	///////////////////////////////////////////////////////////////
 
 	if (REGLOAD(TEXT(REGVALUE_APPLE2_TYPE), &dwComputerType))
 	{
@@ -134,9 +159,7 @@ void LoadConfiguration(bool loadImages)
 
 			LogFileOutput("%s\n", strText.c_str());
 
-			GetFrame().FrameMessageBox(strText.c_str(),
-										 "Load Configuration",
-										 MB_ICONSTOP | MB_SETFOREGROUND);
+			GetFrame().FrameMessageBox(strText.c_str(), "Load Configuration", MB_ICONSTOP | MB_SETFOREGROUND);
 
 			GetPropertySheet().ConfigSaveApple2Type((eApple2Type)dwComputerType);
 		}
@@ -590,4 +613,32 @@ void CtrlReset()
 
 	CpuReset();
 	GetFrame().g_bFreshReset = true;
+}
+
+std::string GetDialogText(HWND hWnd, int control_id, size_t max_length) {
+	if (max_length > USHRT_MAX) {
+        max_length = USHRT_MAX;
+    }
+
+	std::vector<char> buffer(max_length, 0);
+    *(USHORT*)buffer.data() = static_cast<USHORT>(max_length);
+
+    UINT nLineLength = SendDlgItemMessage(hWnd, control_id, EM_LINELENGTH, 0, 0);
+
+    SendDlgItemMessage(hWnd, control_id, EM_GETLINE, 0, (LPARAM)buffer.data());
+
+    nLineLength = nLineLength > max_length - 1 ? max_length - 1 : nLineLength;
+    buffer[nLineLength] = 0x00;
+
+    return std::string(buffer.data());
+}
+
+int GetDialogNumber(HWND hWnd, int control_id, size_t max_length) {
+    std::string str = GetDialogText(hWnd, control_id, max_length);
+
+    try {
+        return std::stoi(str);
+    } catch (const std::invalid_argument&) {
+        return 0;
+    }
 }

@@ -40,6 +40,7 @@
 // clang-format off
 
 uint8_t Listener::next_device_id_ = 1;
+const std::regex Listener::ipPattern("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
 
 Listener& GetSPoverSLIPListener(void)
 {
@@ -48,11 +49,6 @@ Listener& GetSPoverSLIPListener(void)
 }
 
 Listener::Listener() : is_listening_(false) {}
-
-//Listener::Listener(std::string ip_address, const uint16_t port)
-//    : ip_address_(std::move(ip_address)), port_(port), is_listening_(false)
-//{
-//}
 
 void Listener::Initialize(std::string ip_address, const uint16_t port)
 {

@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../CardManager.h"
 #include "../CopyProtectionDongles.h"
 #include "../resource/resource.h"
+#include <Utilities.h>
 
 CPageAdvanced* CPageAdvanced::ms_this = 0;	// reinit'd in ctor
 
@@ -142,14 +143,6 @@ INT_PTR CPageAdvanced::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, L
 			}
 			break;
 
-		//case IDC_SPOSLIP_PORT:
-		//	LogFileOutput("PageAdvanced: IDC_SPOSLIP_PORT, %04x\n", HIWORD(wparam));
-		//	break;
-
-		//case IDC_SPOSLIP_ADDRESS:
-		//	LogFileOutput("PageAdvanced: IDC_SPOSLIP_ADDRESS, %04x\n", HIWORD(wparam));
-		//	break;
-
 		}
 		break;
 	case WM_INITDIALOG:
@@ -157,7 +150,13 @@ INT_PTR CPageAdvanced::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, L
 			SendDlgItemMessage(hWnd,IDC_SAVESTATE_FILENAME,WM_SETTEXT,0,(LPARAM)Snapshot_GetFilename().c_str());
 
 			CheckDlgButton(hWnd, IDC_SAVESTATE_ON_EXIT, g_bSaveStateOnExit ? BST_CHECKED : BST_UNCHECKED);
-                        CheckDlgButton(hWnd, IDC_SPOSLIP_ENABLE_LISTENER, GetSPoverSLIPListener().get_start_on_init() ? BST_CHECKED : BST_UNCHECKED);
+                        
+			// SP over SLIP configuration values
+			auto& listener = GetSPoverSLIPListener();
+			CheckDlgButton(hWnd, IDC_SPOSLIP_ENABLE_LISTENER, listener.get_start_on_init() ? BST_CHECKED : BST_UNCHECKED);
+			SendDlgItemMessage(hWnd, IDC_SPOSLIP_ADDRESS, WM_SETTEXT, 0, (LPARAM) listener.get_ip_address().c_str());
+			std::string port_string = std::to_string(listener.get_port());
+			SendDlgItemMessage(hWnd, IDC_SPOSLIP_PORT, WM_SETTEXT, 0, (LPARAM) port_string.c_str());
 
 			if (GetCardMgr().IsParallelPrinterCardInstalled())
 			{
@@ -205,21 +204,41 @@ void CPageAdvanced::DlgOK(HWND hWnd)
 	g_bSaveStateOnExit = IsDlgButtonChecked(hWnd, IDC_SAVESTATE_ON_EXIT) ? true : false;
 	REGSAVE(TEXT(REGVALUE_SAVE_STATE_ON_EXIT), g_bSaveStateOnExit ? 1 : 0);
 
-	bool startSPListenerOnStartup = IsDlgButtonChecked(hWnd, IDC_SPOSLIP_ENABLE_LISTENER) ? true : false;
-        GetSPoverSLIPListener().set_start_on_init(startSPListenerOnStartup);
-        REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), startSPListenerOnStartup ? 1 : 0);
+	// SP over SLIP
+	auto& listener = GetSPoverSLIPListener();
+	auto current_ip = listener.get_ip_address();
+	auto current_port = listener.get_port();
 
-	// if the user changed to "start" and we're not listening, start it.
-	// if the user unchecked start, then always stop
-	if (!GetSPoverSLIPListener().get_is_listening() && startSPListenerOnStartup)
-	{
-		// need to configure the address/port from the config too.
-                GetSPoverSLIPListener().Initialize("0.0.0.0", 1985);
-                GetSPoverSLIPListener().start();
+	bool startSPListenerOnStartup = IsDlgButtonChecked(hWnd, IDC_SPOSLIP_ENABLE_LISTENER) ? true : false;
+	listener.set_start_on_init(startSPListenerOnStartup);
+
+	std::string listener_ip_address = GetDialogText(hWnd, IDC_SPOSLIP_ADDRESS, 16);
+	listener_ip_address = listener.check_and_set_ip_address(listener_ip_address);
+	// the listener will check and set the address to a default value if it wasn't a good format, so send it back to the dialog
+	SendDlgItemMessage(hWnd, IDC_SPOSLIP_ADDRESS, WM_SETTEXT, 0, (LPARAM)listener_ip_address.c_str());
+
+	int listener_port = GetDialogNumber(hWnd, IDC_SPOSLIP_PORT, 6);
+	if (listener_port > 65535 || listener_port <= 0) listener_port = listener.default_port;
+	listener.set_port(static_cast<uint16_t>(listener_port));
+	std::string port_string = std::to_string(listener_port);
+	SendDlgItemMessage(hWnd, IDC_SPOSLIP_PORT, WM_SETTEXT, 0, (LPARAM)port_string.c_str());
+
+	// WRITE TO REGISTRY
+	REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), startSPListenerOnStartup ? 1 : 0);
+	RegSaveString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, listener_ip_address);
+	REGSAVE(TEXT(REGVALUE_SP_LISTENER_PORT), listener_port);
+
+	// if the user unchecked start, or if they changed port/address, then always stop
+	if (!startSPListenerOnStartup || (current_ip != listener_ip_address) || (current_port != listener_port)) {
+		// this unsets the port and address
+		listener.stop();
 	}
-        else if (!startSPListenerOnStartup)
+
+	// if the user set "start" and we're not listening, start it.
+	if (!listener.get_is_listening() && startSPListenerOnStartup)
 	{
-                GetSPoverSLIPListener().stop();
+		listener.Initialize(listener_ip_address, listener_port);
+		listener.start();
 	}
 
 	// Save the copy protection dongle type
@@ -231,18 +250,8 @@ void CPageAdvanced::DlgOK(HWND hWnd)
 
 		// Update printer dump filename
 		{
-			char szFilename[MAX_PATH];
-			memset(szFilename, 0, sizeof(szFilename));
-			*(USHORT*)szFilename = sizeof(szFilename);
-
-			UINT nLineLength = SendDlgItemMessage(hWnd, IDC_PRINTER_DUMP_FILENAME, EM_LINELENGTH, 0, 0);
-
-			SendDlgItemMessage(hWnd, IDC_PRINTER_DUMP_FILENAME, EM_GETLINE, 0, (LPARAM)szFilename);
-
-			nLineLength = nLineLength > sizeof(szFilename) - 1 ? sizeof(szFilename) - 1 : nLineLength;
-			szFilename[nLineLength] = 0x00;
-
-			card->SetFilename(szFilename);
+			std::string filename = GetDialogText(hWnd, IDC_PRINTER_DUMP_FILENAME, MAX_PATH);
+			card->SetFilename(filename);
 		}
 
 		card->SetDumpToPrinter(IsDlgButtonChecked(hWnd, IDC_DUMPTOPRINTER) ? true : false);

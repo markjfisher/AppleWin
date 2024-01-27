@@ -275,7 +275,7 @@ void SmartPortOverSlip::handle_prodos_status(uint8_t drive_num, std::pair<int, i
           // Bit 0: Disk switched
         */
         const auto& status_data = response->get_data();
-        if (status_data.size() != 25)
+        if (status_data.size() < 4)
         {
                 // check bits 5/6 set for R/W, and the disk is online bit 4.
                 uint8_t c = status_data[0] & 0x70;
