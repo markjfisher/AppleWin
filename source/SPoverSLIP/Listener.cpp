@@ -1,12 +1,7 @@
 
-#include <arpa/inet.h>
 #include <atomic>
 #include <chrono>
 #include <iostream>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <thread>
 
 #include "Listener.h"
@@ -15,6 +10,8 @@
 #include "InitResponse.h"
 #include "SLIP.h"
 #include "TCPConnection.h"
+#include "StatusRequest.h"
+#include "StatusResponse.h"
 
 #include "Log.h"
 #include "Requestor.h"
@@ -22,11 +19,19 @@
 // clang-format off
 #ifdef WIN32
   #include <winsock2.h>
+  #include <ws2tcpip.h>
   #pragma comment(lib, "ws2_32.lib")
   #define CLOSE_SOCKET closesocket
   #define SOCKET_ERROR_CODE WSAGetLastError()
 #else
+  #include <arpa/inet.h>
   #include <errno.h>
+  #include <netinet/in.h>
+  #include <sys/socket.h>
+  #include <sys/types.h>
+  #include <unistd.h>
+#include "StatusRequest.h"
+#include "StatusRequest.h"
   #define CLOSE_SOCKET close
   #define SOCKET_ERROR_CODE errno
   #define INVALID_SOCKET -1
@@ -35,10 +40,20 @@
 // clang-format off
 
 uint8_t Listener::next_device_id_ = 1;
+const std::regex Listener::ipPattern("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
 
-Listener::Listener(std::string ip_address, const u_short port)
-    : ip_address_(std::move(ip_address)), port_(port), is_listening_(false)
+Listener& GetSPoverSLIPListener(void)
 {
+  static Listener listener;
+  return listener;
+}
+
+Listener::Listener() : is_listening_(false) {}
+
+void Listener::Initialize(std::string ip_address, const uint16_t port)
+{
+  ip_address_ = std::move(ip_address);
+  port_ = port;
 }
 
 bool Listener::get_is_listening() const { return is_listening_; }
@@ -59,11 +74,17 @@ void Listener::listener_function()
   LogFileOutput("Listener::listener_function - RUNNING\n");
   int server_fd, new_socket;
   struct sockaddr_in address;
+#ifdef WIN32
+  int address_length = sizeof(address);
+#else
   socklen_t address_length = sizeof(address);
+#endif
 
 #ifdef WIN32
   WSADATA wsa_data;
-  WSAStartup(MAKEWORD(2, 2), &wsa_data);
+  if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) {
+    LogFileOutput("WSAStartup failed: %d\n", WSAGetLastError());
+  }
 #endif
 
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
@@ -74,15 +95,23 @@ void Listener::listener_function()
 
   address.sin_family = AF_INET;
   address.sin_port = htons(port_);
-  address.sin_addr.s_addr = inet_addr(ip_address_.c_str());
+  inet_pton(AF_INET, ip_address_.c_str(), &(address.sin_addr));
 
+#ifdef WIN32
+  char opt = 1;
+#else
   int opt = 1;
-  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+#endif
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == SOCKET_ERROR)
+  {
     LogFileOutput("Listener::listener_function - setsockopt failed\n");
     return;
   }
-
+#ifdef WIN32
+  if (bind(server_fd, reinterpret_cast<SOCKADDR *>(&address), sizeof(address)) == SOCKET_ERROR)
+#else
   if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) == SOCKET_ERROR)
+#endif
   {
     LogFileOutput("Listener::listener_function - bind failed\n");
     return;
@@ -119,7 +148,11 @@ void Listener::listener_function()
       continue;
     }
 
+#ifdef WIN32
+    if ((new_socket = accept(server_fd, reinterpret_cast<SOCKADDR *>(&address), &address_length)) == INVALID_SOCKET)
+#else
     if ((new_socket = accept(server_fd, (struct sockaddr *)&address, &address_length)) == INVALID_SOCKET)
+#endif
     {
       LogFileOutput("Listener::listener_function - accept failed\n");
       is_listening_ = false;
@@ -132,9 +165,6 @@ void Listener::listener_function()
   LogFileOutput("Listener::listener_function - listener closing down\n");
 
   CLOSE_SOCKET(server_fd);
-#ifdef WIN32
-  WSACleanup();
-#endif
 }
 
 // Creates a Connection object, which is how SP device(s) will register itself with our listener.
@@ -173,6 +203,11 @@ void Listener::create_connection(unsigned int socket)
     InitRequest request(Requestor::next_request_number(), unit_id);
     const auto response = Requestor::send_request(request, conn.get());
     const auto init_response = dynamic_cast<InitResponse *>(response.get());
+    if (init_response == nullptr)
+    {
+      LogFileOutput("SmartPortOverSlip listener ERROR, no response data found\n");
+      break;
+    }
     still_scanning = init_response->get_status() == 0;
     if (still_scanning)
       unit_id++;
@@ -202,22 +237,31 @@ void Listener::stop()
     LogFileOutput("Listener::stop() ... joining listener until it stops\n");
     listening_thread_.join();
 
-    LogFileOutput("Listener::stop() ... informing connections they need to stop\n");
-    auto reboot_ = std::vector<uint8_t>(Connection::reboot_sequence.begin(), Connection::reboot_sequence.end());
+    LogFileOutput("Listener::stop() - closing %d connections\n", connection_map_.size());
     for (auto &pair : connection_map_)
     {
       const auto &connection = pair.second;
-      connection->send_data(reboot_);
       connection->set_is_connected(false);
+      connection->close_connection();
       connection->join();
     }
-    // HACK! gives the connected devices time to reboot
-    // std::this_thread::sleep_for(std::chrono::seconds(3));
   }
+  port_ = 0;
+  ip_address_.clear();
+  next_device_id_ = 1;
+  connection_map_.clear();
+
+#ifdef WIN32
+  WSACleanup();
+#endif
+
   LogFileOutput("Listener::stop() ... finished\n");
 }
 
-// Returns the lower bound of the device id, and connection.
+// Returns the ADJUSTED lower bound of the device id, and connection.
+// i.e. the ID that the target thinks the device index is.
+// We store (for example) device_ids in applewin with values 1-5 for connection 1, 6-8 for connection 2, but each device things they are 1-5, and 1-3 (not 6-8).
+// However the apple side sees 1-8, and so we have to convert 6, 7, 8 into the target's 1, 2, 3
 std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_device(const uint8_t device_id) const
 {
   std::pair<uint8_t, std::shared_ptr<Connection>> result;
@@ -225,7 +269,7 @@ std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_d
   {
     if (device_id >= kv.first.first && device_id <= kv.first.second)
     {
-      result = std::make_pair(kv.first.first, kv.second);
+      result = std::make_pair(device_id - kv.first.first + 1, kv.second);
       break;
     }
   }
@@ -243,4 +287,49 @@ std::vector<std::pair<uint8_t, Connection *>> Listener::get_all_connections() co
     }
   }
   return connections;
+}
+
+std::pair<int, int> Listener::first_two_disk_devices() const {
+    if (cache_valid) {
+        return cached_disk_devices;
+    }
+
+    cached_disk_devices = {-1, -1}; // Initialize with invalid device ids
+
+    for (uint8_t unit_number = 1; unit_number < next_device_id_; ++unit_number) {
+        const auto id_and_connection = GetSPoverSLIPListener().find_connection_with_device(unit_number);
+        if (id_and_connection.second == nullptr) continue;
+
+        // ids from the map need adjusting down to their real ids on the device
+
+
+        // DIB request to get information block
+        const StatusRequest request(Requestor::next_request_number(), unit_number, 3);
+
+
+        std::unique_ptr<Response> response = Requestor::send_request(request, id_and_connection.second.get());
+
+        // Cast the Response to a StatusResponse
+        StatusResponse* statusResponse = dynamic_cast<StatusResponse*>(response.get());
+
+        if (statusResponse) {
+            const std::vector<uint8_t>& data = statusResponse->get_data();
+
+            // Check if data size is at least 22 and the device type is a disk, and that the disk status is ONLINE (status[0] bit 4)
+            if (data.size() >= 22 && (data[21] == 0x01 || data[21] == 0x02 || data[21] == 0x0A) && ((data[0] & 0x10) == 0x10)) {
+                // If first disk device id is not set, set it
+                if (cached_disk_devices.first == -1) {
+                    cached_disk_devices.first = unit_number;
+                }
+                // Else if second disk device id is not set, set it and break the loop
+                else if (cached_disk_devices.second == -1) {
+                    cached_disk_devices.second = unit_number;
+                    break;
+                }
+            }
+        }
+    }
+
+    cache_valid = true;
+    return cached_disk_devices;
 }

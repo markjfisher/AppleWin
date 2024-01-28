@@ -124,6 +124,7 @@
 #define IDC_COMBO_GAME_IO_CONNECTOR     1092
 #define IDC_SPOSLIP_ADDRESS             1093
 #define IDC_SPOSLIP_PORT                1094
+#define IDC_SPOSLIP_ENABLE_LISTENER     1095
 #define IDM_EXIT                        40001
 #define IDM_HELP                        40002
 #define IDM_ABOUT                       40003

@@ -11,3 +11,5 @@ void GetAppleWindowTitle();
 
 void CtrlReset();
 void ResetMachineState();
+std::string GetDialogText(HWND hWnd, int control_id, size_t max_length);
+int GetDialogNumber(HWND hWnd, int control_id, size_t max_length);

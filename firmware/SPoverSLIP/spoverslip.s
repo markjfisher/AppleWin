@@ -6,7 +6,8 @@
 loc0    := $00
 loc1    := $01
 
-magic   = $65           ; as in: cc65
+spmagic := $65          ; magic byte to trigger SmartPort code in Emulator
+pdmagic := $66          ; magic byte to trigger ProDos code in Emulator
 
 mslot   := $07F8        ; BUFFER FOR HI SLOT ADDR (SCN)
 
@@ -28,7 +29,7 @@ header:
         cpx     #$03
         cpx     #$00
 
-        ; if we're called directly just print an error and drop to basic.
+        ; if we're called directly (e.g. PR#5) just print an error and drop to basic.
         ; this is a copy of Oliver Schmidt code for Reload Emulator at https://github.com/vsladkov/reload-emulator/pull/1/files#diff-b889f9e1f8b8d8898b043495b2e25bfc19a9b12655456af92ebab9f92c9e20b0
 do_err:
         ldx     loc0
@@ -54,14 +55,19 @@ cn2:
         bpl     :-
         jmp     basic
 
-        ; PRODOS entry
+        ; PRODOS entry, this has to be 3 bytes before the SP entry
 driver:
-        lda     #$00
-        rts
+        sec
+        bcs     do_prodos
 
 sp_driver:
         ; EVERYTHING is done in Emulator.
-        lda     #magic          ; magic = $65, $02 = value to get things going.
+        lda     #spmagic
+        bne     n2
+
+do_prodos:
+        lda     #pdmagic
+
         ; used to locate where the firmware needs to write slot value.
         ; DO NOT PUT ANYTHING BETWEEN LABEL AND "sta $c000"
 n2:

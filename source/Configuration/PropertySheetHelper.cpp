@@ -119,8 +119,13 @@ void CPropertySheetHelper::ConfigSaveApple2Type(eApple2Type apple2Type)
 }
 
 void CPropertySheetHelper::SaveCpuType(eCpuType NewCpuType)
+{ 
+	 REGSAVE(TEXT(REGVALUE_CPU_TYPE), NewCpuType);
+}
+
+void CPropertySheetHelper::SaveSPoverSLIPListenerStartup(bool shouldStart)
 {
-	REGSAVE(TEXT(REGVALUE_CPU_TYPE), NewCpuType);
+	REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), shouldStart ? 1 : 0);
 }
 
 void CPropertySheetHelper::SetSlot(UINT slot, SS_CARDTYPE newCardType)
@@ -333,6 +338,19 @@ void CPropertySheetHelper::ApplyNewConfig(const CConfigNeedingRestart& ConfigNew
 		SaveCpuType(ConfigNew.m_CpuType);
 	}
 
+	if (CONFIG_CHANGED_LOCAL(m_startSPOverSlipListener))
+	{
+                SaveSPoverSLIPListenerStartup(ConfigNew.m_startSPOverSlipListener);
+		// if we're changing to on, start it, else stop it
+		if (ConfigNew.m_startSPOverSlipListener) {
+                        GetSPoverSLIPListener().start();
+		}
+		else
+		{
+                        GetSPoverSLIPListener().stop();
+		}
+	}
+
 	UINT slot = SLOT3;
 	if (CONFIG_CHANGED_LOCAL(m_Slot[slot]))
 		SetSlot(slot, ConfigNew.m_Slot[slot]);
@@ -370,6 +388,7 @@ void CPropertySheetHelper::ApplyNewConfigFromSnapshot(const CConfigNeedingRestar
 	SaveCpuType(ConfigNew.m_CpuType);
 	REGSAVE(TEXT(REGVALUE_THE_FREEZES_F8_ROM), ConfigNew.m_bEnableTheFreezesF8Rom);
 	REGSAVE(TEXT(REGVALUE_VIDEO_REFRESH_RATE), ConfigNew.m_videoRefreshRate);
+        REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), ConfigNew.m_startSPOverSlipListener ? 1 : 0);
 }
 
 void CPropertySheetHelper::ApplyNewConfig(void)

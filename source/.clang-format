@@ -3,3 +3,5 @@ ColumnLimit: 160
 BreakBeforeBraces: Allman
 AllowShortBlocksOnASingleLine: true
 AlwaysBreakAfterReturnType: None
+IncludeBlocks: Preserve
+SortIncludes: false

@@ -19,6 +19,7 @@ public:
 
   const std::array<uint8_t, 512> &get_block_data() const;
   void set_block_data_from_ptr(const uint8_t *ptr, size_t offset);
+  void set_block_number_from_bytes(uint8_t l, uint8_t m, uint8_t h);
 
 private:
   std::array<uint8_t, 3> block_number_;
