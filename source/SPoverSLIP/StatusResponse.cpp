@@ -12,13 +12,13 @@ void StatusResponse::set_data(const std::vector<uint8_t> &data) { data_ = data; 
 
 std::vector<uint8_t> StatusResponse::serialize() const
 {
-  std::vector<uint8_t> data;
-  data.push_back(this->get_request_sequence_number());
-  data.push_back(this->get_status());
+	std::vector<uint8_t> data;
+	data.push_back(this->get_request_sequence_number());
+	data.push_back(this->get_status());
 
-  for (uint8_t b : get_data())
-  {
-    data.push_back(b);
-  }
-  return data;
+	for (uint8_t b : get_data())
+	{
+		data.push_back(b);
+	}
+	return data;
 }
