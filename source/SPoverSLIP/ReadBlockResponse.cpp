@@ -7,16 +7,16 @@ ReadBlockResponse::ReadBlockResponse(const uint8_t request_sequence_number, cons
 
 std::vector<uint8_t> ReadBlockResponse::serialize() const
 {
-  std::vector<uint8_t> data;
-  data.push_back(this->get_request_sequence_number());
-  data.push_back(this->get_status());
-  data.insert(data.end(), block_data_.begin(), block_data_.end());
-  return data;
+	std::vector<uint8_t> data;
+	data.push_back(this->get_request_sequence_number());
+	data.push_back(this->get_status());
+	data.insert(data.end(), block_data_.begin(), block_data_.end());
+	return data;
 }
 
 void ReadBlockResponse::set_block_data(std::vector<uint8_t>::const_iterator begin, std::vector<uint8_t>::const_iterator end)
 {
-  std::copy(begin, end, block_data_.begin()); // NOLINT(performance-unnecessary-value-param)
+	std::copy(begin, end, block_data_.begin()); // NOLINT(performance-unnecessary-value-param)
 }
 
 const std::array<uint8_t, 512> &ReadBlockResponse::get_block_data() const { return block_data_; }

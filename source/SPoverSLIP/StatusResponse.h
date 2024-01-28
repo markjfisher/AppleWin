@@ -7,13 +7,13 @@
 class StatusResponse : public Response
 {
 public:
-  explicit StatusResponse(uint8_t request_sequence_number, uint8_t status);
-  std::vector<uint8_t> serialize() const override;
+	explicit StatusResponse(uint8_t request_sequence_number, uint8_t status);
+	std::vector<uint8_t> serialize() const override;
 
-  const std::vector<uint8_t> &get_data() const;
-  void add_data(uint8_t d);
-  void set_data(const std::vector<uint8_t> &data);
+	const std::vector<uint8_t> &get_data() const;
+	void add_data(uint8_t d);
+	void set_data(const std::vector<uint8_t> &data);
 
 private:
-  std::vector<uint8_t> data_;
+	std::vector<uint8_t> data_;
 };
