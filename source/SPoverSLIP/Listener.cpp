@@ -237,7 +237,7 @@ void Listener::stop()
     LogFileOutput("Listener::stop() ... joining listener until it stops\n");
     listening_thread_.join();
 
-    LogFileOutput("Listener::stop() - closing %d connections\n", connection_map_.size());
+    LogFileOutput("Listener::stop() - closing %ld connections\n", connection_map_.size());
     for (auto &pair : connection_map_)
     {
       const auto &connection = pair.second;
