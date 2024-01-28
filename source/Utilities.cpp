@@ -115,6 +115,13 @@ void LoadConfiguration(bool loadImages)
 		RegLoadString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, tcAddress, 16, listener.default_listener_address.c_str());
 		REGLOAD_DEFAULT(TEXT(REGVALUE_SP_LISTENER_PORT), &dwPort, listener.default_port);
 	}
+  else
+  {
+    // Save defaults to registry if non exist, this cleans up some editing issues if there's no values already saved
+	  REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), 1);
+	  RegSaveString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, listener.default_listener_address);
+	  REGSAVE(TEXT(REGVALUE_SP_LISTENER_PORT), listener.default_port);
+  }
 
 	std::string listener_address(tcAddress);
 	listener_address = listener.check_and_set_ip_address(listener_address);

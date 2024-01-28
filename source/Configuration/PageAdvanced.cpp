@@ -230,7 +230,6 @@ void CPageAdvanced::DlgOK(HWND hWnd)
 
 	// if the user unchecked start, or if they changed port/address, then always stop
 	if (!startSPListenerOnStartup || (current_ip != listener_ip_address) || (current_port != listener_port)) {
-		// this unsets the port and address
 		listener.stop();
 	}
 
