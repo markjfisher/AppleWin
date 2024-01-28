@@ -246,8 +246,6 @@ void Listener::stop()
       connection->join();
     }
   }
-  port_ = 0;
-  ip_address_.clear();
   next_device_id_ = 1;
   connection_map_.clear();
 

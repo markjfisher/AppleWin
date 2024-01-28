@@ -123,7 +123,7 @@ enum AppMode_e
 #define  REGVALUE_LAST_DISK_2		"Last Disk Image 2"
 #define  REGVALUE_LAST_HARDDISK_1	"Last Harddisk Image 1"
 #define  REGVALUE_LAST_HARDDISK_2	"Last Harddisk Image 2"
-#define  REGVALUE_START_SP_SLIP_LISTENER "Start SP over SLIP Listener"
+#define  REGVALUE_START_SP_SLIP_LISTENER "SPoverSLIP Run Listener At Start"
 #define  REGVALUE_SP_LISTENER_ADDRESS    "SPoverSLIP Listener Address"
 #define  REGVALUE_SP_LISTENER_PORT       "SPoverSLIP Listener Port"
 
