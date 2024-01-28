@@ -617,6 +617,8 @@ void CtrlReset()
 	GetFrame().g_bFreshReset = true;
 }
 
+#ifdef WIN32
+// This isn't required and will not compile in Linux port
 std::string GetDialogText(HWND hWnd, int control_id, size_t max_length) {
 	if (max_length > USHRT_MAX) {
         max_length = USHRT_MAX;
@@ -644,3 +646,4 @@ int GetDialogNumber(HWND hWnd, int control_id, size_t max_length) {
         return 0;
     }
 }
+#endif
