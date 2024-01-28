@@ -593,9 +593,85 @@ namespace sa2
           ImGui::EndTabItem();
         }
 
-#ifdef U2_USE_SLIRP
         if (ImGui::BeginTabItem("Network"))
         {
+
+          if (ImGui::BeginTabBar("SmartPort"))
+          {
+            ImGui::BeginTabItem("SmartPort over SLIP");
+            ///////////////////////////////////////////////////////
+            // CheckBox - Start on startup
+            auto& listener = GetSPoverSLIPListener();
+            bool startSPListener = listener.get_start_on_init();
+            if (ImGui::Checkbox("Run Listener at startup", &startSPListener))
+            {
+              LogFileOutput("start listener changed\n");
+              listener.set_start_on_init(startSPListener);
+	            REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), startSPListener? 1 : 0);
+            }
+  
+            ///////////////////////////////////////////////////////
+            // TEXT - ip address
+            static char ipAddress[16];
+            std::strncpy(ipAddress, listener.get_ip_address().c_str(), sizeof(ipAddress));
+            ipAddress[sizeof(ipAddress) - 1] = '\0';
+            if(ImGui::InputText("Listener Address", ipAddress, IM_ARRAYSIZE(ipAddress), ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+              std::string old_address = listener.get_ip_address();
+              std::string fixedAddress = listener.check_and_set_ip_address(std::string(ipAddress));
+              if (fixedAddress != old_address) {
+                LogFileOutput("listener address changed to %s\n", fixedAddress.c_str());
+	              RegSaveString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, fixedAddress);
+              }
+            }
+
+            ///////////////////////////////////////////////////////
+            // NUMBER - IP port
+            static char ipPort[6];
+            std::strncpy(ipPort, std::to_string(listener.get_port()).c_str(), sizeof(ipPort));
+            ipPort[sizeof(ipPort) - 1] = '\0';
+            if(ImGui::InputText("Listener Port", ipPort, IM_ARRAYSIZE(ipPort), ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+              int old_port = listener.get_port();
+              int port = std::stoi(std::string(ipPort));
+              if (port > 65535 || port <= 0) {
+               port = listener.default_port;
+              }
+              if (port != old_port) {
+                LogFileOutput("listener port changed to %d\n", port);
+                listener.set_port(port);
+	              REGSAVE(TEXT(REGVALUE_SP_LISTENER_PORT), port);
+              }
+            }
+
+            ///////////////////////////////////////////////////////
+            // BUTTONS - stop/start listener
+            std::string restartText = "Restart Listener";
+            bool hideStart = listener.get_is_listening();
+            ImGui::BeginDisabled(hideStart);
+            if (ImGui::Button("Start Listener"))
+            {
+              LogFileOutput("starting listener on %s:%d\n", listener.get_ip_address().c_str(), listener.get_port());
+              listener.start();
+            }
+            if (hideStart) {
+              ImGui::EndDisabled();
+            }
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!hideStart);
+            if (ImGui::Button("Stop Listener"))
+            {
+              listener.stop();
+            }
+            if (!hideStart) {
+              ImGui::EndDisabled();
+            }
+
+            ImGui::EndTabItem();
+            ImGui::EndTabBar();
+          }
+          
+#ifdef U2_USE_SLIRP
           if (ImGui::BeginTabBar("Uthernet"))
           {
             for (size_t slot = SLOT1; slot < NUM_SLOTS; ++slot)
@@ -623,9 +699,9 @@ namespace sa2
 
             ImGui::EndTabBar();
           }
+#endif
           ImGui::EndTabItem();
         }
-#endif
 
         if (ImGui::BeginTabItem("Registry"))
         {
