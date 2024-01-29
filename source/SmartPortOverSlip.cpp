@@ -203,7 +203,7 @@ void SmartPortOverSlip::handle_prodos_call()
 	const uint8_t slot_num = (mem[0x43] & 0x70) >> 4;
 	const uint8_t command = mem[0x42];
 
-	LogFileOutput("SmartPortOverSlip prodos, drive_num: %d, slot_num: %d, command: %d\n", drive_num, slot_num, command);
+	// LogFileOutput("SmartPortOverSlip prodos, drive_num: %d, slot_num: %d, command: %d\n", drive_num, slot_num, command);
 
 	if (slot_num != m_slot)
 	{
@@ -538,6 +538,25 @@ BYTE __stdcall c0Handler(const WORD programCounter, const WORD address, const BY
 	return 0;
 }
 
+//BYTE __stdcall readC0(const WORD programCounter, const WORD address, const BYTE write, const BYTE value, const ULONG nCycles)
+//{
+//	LogFileOutput("SmartPortOverSlip readC0, pc: %04x, add: %04x, write: %02x, val: %02x\n", programCounter, address, write, value);
+//	return 0;
+//}
+
+//BYTE __stdcall readCX(const WORD programCounter, const WORD address, const BYTE write, const BYTE value, const ULONG nCycles)
+//{
+//	auto v = mem[address];
+//	LogFileOutput("SmartPortOverSlip readCX, pc: %04x, add: %04x, v: %02x, write: %02x, val: %02x\n", programCounter, address, v, write, value);
+//	return v;
+//}
+
+//BYTE __stdcall writeCX(const WORD programCounter, const WORD address, const BYTE write, const BYTE value, const ULONG nCycles)
+//{
+//	LogFileOutput("SmartPortOverSlip writeCX, pc: %04x, add: %04x, write: %02x, val: %02x\n", programCounter, address, write, value);
+//	return 0;
+//}
+
 void SmartPortOverSlip::InitializeIO(LPBYTE pCxRomPeripheral)
 {
 	LogFileOutput("SmartPortOverSlip InitialiseIO\n");
@@ -550,19 +569,25 @@ void SmartPortOverSlip::InitializeIO(LPBYTE pCxRomPeripheral)
 	// Copy the data into the destination memory
 	std::memcpy(pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE, pData, APPLE_SLOT_SIZE);
 
-	// Set location in firmware that need to know the slot number for reading/writing to the card
-	const BYTE locCN1 = pData[0xF9]; // location of where to put $n2
-	const BYTE locCN2 = pData[0xFA]; // location of where to put $n2
+	// Set locations in firmware that need to know the slot number for reading/writing to the card
+	const BYTE locN16a = pData[0xF6];		  // location of where to put slot * 16 #1
+	const BYTE locN16b = pData[0xF7];		  // location of where to put slot * 16 #2
+	const BYTE locCN1 = pData[0xF8];		  // location of where to put $CN
+	const BYTE locCN2 = pData[0xF9];		  // location of where to put $CN
+	const BYTE locCN3 = pData[0xFA];		  // location of where to put $CN
 	const BYTE cn = ((m_slot & 0xff) | 0xC0); // slot(n) || 0xC0 = 0xCn
 
-	const BYTE locN2 = pData[0xFB]; // location of where to put $n2
+	const BYTE locN2 = pData[0xFB];											 // location of where to put $n2
 	const BYTE n2 = static_cast<BYTE>(((m_slot & 0xff) | 0x08) << 4) + 0x02; // (slot + 8) * 16 + 2, giving low byte of $C0n2
 
 	// Modify the destination memory to hold the slot information needed by the firmware.
 	// The pData memory is R/O, and we get an access violation writing to it, so alter the destination instead.
 	const LPBYTE pDest = pCxRomPeripheral + m_slot * APPLE_SLOT_SIZE;
+	pDest[locN16a] = (m_slot & 0xff) * 16;
+	pDest[locN16b] = (m_slot & 0xff) * 16;
 	pDest[locCN1] = cn;
 	pDest[locCN2] = cn;
+	pDest[locCN3] = cn;
 	pDest[locN2] = n2;
 
 	RegisterIoHandler(m_slot, nullptr, c0Handler, nullptr, nullptr, this, nullptr);
