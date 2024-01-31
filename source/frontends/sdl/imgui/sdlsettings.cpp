@@ -647,8 +647,10 @@ namespace sa2
             ///////////////////////////////////////////////////////
             // BUTTONS - stop/start listener
             std::string restartText = "Restart Listener";
-            bool hideStart = listener.get_is_listening();
-            ImGui::BeginDisabled(hideStart);
+            const bool hideStart = listener.get_is_listening();
+            if (hideStart) {
+              ImGui::BeginDisabled();
+            }
             if (ImGui::Button("Start Listener"))
             {
               LogFileOutput("starting listener on %s:%d\n", listener.get_ip_address().c_str(), listener.get_port());
@@ -658,7 +660,9 @@ namespace sa2
               ImGui::EndDisabled();
             }
             ImGui::SameLine();
-            ImGui::BeginDisabled(!hideStart);
+            if (!hideStart) {
+              ImGui::BeginDisabled();
+            }
             if (ImGui::Button("Stop Listener"))
             {
               listener.stop();
