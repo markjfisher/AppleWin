@@ -120,6 +120,12 @@ void SmartPortOverSlip::handle_smartport_call()
 	mem[regs.sp + 1] = rts_location & 0xff;
 	mem[regs.sp + 2] = (rts_location >> 8) & 0xff;
 
+	int dirty_page_start = ((regs.sp + 1) & 0xFF00) >> 8;
+	int dirty_page_end = ((regs.sp + 2) & 0xFF00) >> 8;
+	memdirty[dirty_page_start] = 0xFF;
+	memdirty[dirty_page_end] = 0xFF;
+
+
 	// Deal with unit 0, status 0 call to return device count, doesn't need connection details.
 	if (unit_number == 0 && mem[params_loc] == 0)
 	{
@@ -326,6 +332,9 @@ void SmartPortOverSlip::handle_prodos_read(uint8_t drive_num, std::pair<int, int
 		std::move(response),
 		[this, buffer_location](const ReadBlockResponse *rbr) {
 			memcpy(mem + buffer_location, rbr->get_block_data().data(), 512);
+			int dirty_page_start = (buffer_location & 0xFF00) >> 8;
+			memdirty[dirty_page_start] = 0xFF;
+			memdirty[dirty_page_start + 1] = 0xFF;
 			regs.a = 0;
 			regs.x = 0;
 			regs.y = 2; // 512 bytes
@@ -345,6 +354,9 @@ void SmartPortOverSlip::handle_prodos_write(uint8_t drive_num, std::pair<int, in
 	request.set_block_number_from_bytes(mem[0x46], mem[0x47], 0);
 	// put data into the request we're sending
 	request.set_block_data_from_ptr(mem, buffer_location);
+	//int dirty_page_start = (buffer_location & 0xFF00) >> 8;
+	//memdirty[dirty_page_start] = 0xFF;
+	//memdirty[dirty_page_start + 1] = 0xFF;
 	auto response = Requestor::send_request(request, id_connection.second.get());
 
 	handle_response<WriteBlockResponse>(
@@ -384,6 +396,11 @@ void SmartPortOverSlip::device_count(const WORD sp_payload_loc)
 	mem[sp_payload_loc + 3] = 0x46;
 	mem[sp_payload_loc + 4] = 0x0A; // version 1.00 Alpha = $100A
 	mem[sp_payload_loc + 5] = 0x10;
+	int dirty_page_start = (sp_payload_loc & 0xFF00) >> 8;
+	int dirty_page_end = ((sp_payload_loc + 5) & 0xFF00) >> 8;
+	memdirty[dirty_page_start] = 0xFF;
+	memdirty[dirty_page_end] = 0xFF;
+
 	regs.a = 0;
 	regs.x = 6;
 	regs.y = 0;
@@ -399,6 +416,11 @@ void SmartPortOverSlip::read_block(const BYTE unit_number, Connection *connectio
 
 	handle_response<ReadBlockResponse>(std::move(response), [this, buffer_location](const ReadBlockResponse *rbr) {
 		memcpy(mem + buffer_location, rbr->get_block_data().data(), 512);
+
+		int dirty_page_start = (buffer_location & 0xFF00) >> 8;
+		memdirty[dirty_page_start] = 0xFF;
+		memdirty[dirty_page_start + 1] = 0xFF;
+
 		regs.a = 0;
 		regs.x = 0;
 		regs.y = 2; // 512 bytes
@@ -426,6 +448,13 @@ void SmartPortOverSlip::read(const BYTE unit_number, Connection *connection, con
 	handle_response<ReadResponse>(std::move(response), [sp_payload_loc](const ReadResponse *rr) {
 		const auto response_size = rr->get_data().size();
 		memcpy(mem + sp_payload_loc, rr->get_data().data(), response_size);
+
+		int dirty_page_start = (sp_payload_loc & 0xFF00) >> 8;
+		int dirty_page_end = ((sp_payload_loc + response_size) & 0xFF00) >> 8;
+		for (int i = dirty_page_start; i <= dirty_page_end; i++) {
+			memdirty[i] = 0xFF;
+		}
+
 		regs.a = 0;
 		regs.x = response_size & 0xff;
 		regs.y = (response_size >> 8) & 0xff;
@@ -451,6 +480,13 @@ void SmartPortOverSlip::status_sp(const BYTE unit_number, Connection *connection
 	handle_response<StatusResponse>(std::move(response), [sp_payload_loc](const StatusResponse *sr) {
 		const auto response_size = sr->get_data().size();
 		memcpy(mem + sp_payload_loc, sr->get_data().data(), response_size);
+
+		int dirty_page_start = (sp_payload_loc & 0xFF00) >> 8;
+		int dirty_page_end = ((sp_payload_loc + response_size) & 0xFF00) >> 8;
+		for (int i = dirty_page_start; i <= dirty_page_end; i++) {
+			memdirty[i] = 0xFF;
+		}
+
 		regs.a = 0;
 		regs.x = response_size & 0xff;
 		regs.y = (response_size >> 8) & 0xff;
