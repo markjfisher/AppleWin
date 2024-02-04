@@ -93,7 +93,7 @@ void TCPConnection::create_read_channel()
 				}
 				if (valread == 0)
 				{
-					// disconnected, close connection, should remove it too: TODO
+					// disconnected, close connection
 					LogFileOutput("TCPConnection: recv == 0, disconnecting\n");
 					self->set_is_connected(false);
 				}
