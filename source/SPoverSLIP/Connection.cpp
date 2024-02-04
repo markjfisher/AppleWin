@@ -24,13 +24,20 @@ std::vector<uint8_t> Connection::wait_for_response(uint8_t request_id, std::chro
 // The codebase is used both sides of the connection.
 std::vector<uint8_t> Connection::wait_for_request()
 {
-	std::unique_lock<std::mutex> lock(data_mutex_);
-	data_cv_.wait(lock, [this]() { return !data_map_.empty(); });
-	const auto it = data_map_.begin();
-	std::vector<uint8_t> request_data = it->second;
-	data_map_.erase(it);
+	// Use a timeout so we can stop waiting for responses
+	while (is_connected_)
+	{
+		std::unique_lock<std::mutex> lock(data_mutex_);
+		if (data_cv_.wait_for(lock, std::chrono::milliseconds(100), [this]() { return !data_map_.empty(); }))
+		{
+			const auto it = data_map_.begin();
+			std::vector<uint8_t> request_data = it->second;
+			data_map_.erase(it);
 
-	return request_data;
+			return request_data;
+		}
+	}
+	return std::vector<uint8_t>();
 }
 
 void Connection::join()

@@ -185,4 +185,4 @@ UpgradeLog*.htm
 FakesAssemblies/
 
 # Editor settings
-.vscode/c_cpp_properties.json
+.vscode/*
