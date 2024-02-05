@@ -36,7 +36,6 @@
 	#define SOCKET_ERROR -1
 #endif
 
-uint8_t Listener::next_device_id_ = 1;
 const std::regex Listener::ipPattern("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
 
 Listener &GetSPoverSLIPListener(void)
@@ -55,9 +54,9 @@ void Listener::Initialize(std::string ip_address, const uint16_t port)
 
 bool Listener::get_is_listening() const { return is_listening_; }
 
-void Listener::insert_connection(uint8_t start_id, uint8_t end_id, const std::shared_ptr<Connection> &conn) { connection_map_[{start_id, end_id}] = conn; }
+void Listener::insert_connection(uint8_t host_id, const ConnectionInfo &info) { connection_info_map_[host_id] = info; }
 
-uint8_t Listener::get_total_device_count() { return next_device_id_ - 1; }
+uint8_t Listener::get_total_device_count() { return static_cast<uint8_t>(connection_info_map_.size()); }
 
 Listener::~Listener() { stop(); }
 
@@ -189,13 +188,14 @@ void Listener::create_connection(unsigned int socket)
 	// attached.
 
 	bool still_scanning = true;
-	uint8_t unit_id = 1;
+	uint8_t device_id = 1;
+	uint8_t host_id = 1;
 
 	// send init requests to find all the devices on this connection, or we have too many devices.
-	while (still_scanning && (unit_id + next_device_id_) < 255)
+	while (still_scanning && connection_info_map_.size() < 254)
 	{
-		LogFileOutput("SmartPortOverSlip listener sending request for unit_id: %d\n", unit_id);
-		InitRequest request(Requestor::next_request_number(), unit_id);
+		LogFileOutput("SmartPortOverSlip listener sending request for device_id: %d\n", device_id);
+		InitRequest request(Requestor::next_request_number(), device_id);
 		const auto response = Requestor::send_request(request, conn.get());
 		const auto init_response = dynamic_cast<InitResponse *>(response.get());
 		if (init_response == nullptr)
@@ -204,16 +204,24 @@ void Listener::create_connection(unsigned int socket)
 			break;
 		}
 		still_scanning = init_response->get_status() == 0;
-		if (still_scanning)
-			unit_id++;
-	}
 
-	const auto start_id = next_device_id_;
-	const auto end_id = static_cast<uint8_t>(start_id + unit_id - 1);
-	next_device_id_ = end_id + 1;
-	// track the connection and device ranges it reported. Further connections can add to the devices we can target.
-	LogFileOutput("SmartPortOverSlip listener creating connection for start: %d, end: %d\n", start_id, end_id);
-	insert_connection(start_id, end_id, conn);
+		// find the next available host_id this device can map to
+		while (connection_info_map_.find(host_id) != connection_info_map_.end())
+		{
+			host_id++;
+		}
+
+		// create an info object for the connection... no names!
+		ConnectionInfo info;
+		info.host_id = host_id;
+		info.device_id = device_id;
+		info.connection = conn;
+		LogFileOutput("SmartPortOverSlip listener creating connection entry for host_id: %d, device_id: %d\n", host_id, device_id);
+		insert_connection(host_id, info);
+
+		if (still_scanning)
+			device_id++;
+	}
 }
 
 void Listener::start()
@@ -232,17 +240,16 @@ void Listener::stop()
 		LogFileOutput("Listener::stop() ... joining listener until it stops\n");
 		listening_thread_.join();
 
-		LogFileOutput("Listener::stop() - closing %ld connections\n", connection_map_.size());
-		for (auto &pair : connection_map_)
+		LogFileOutput("Listener::stop() - closing %ld connections\n", connection_info_map_.size());
+		for (auto &pair : connection_info_map_)
 		{
-			const auto &connection = pair.second;
+			const auto &connection = pair.second.connection;
 			connection->set_is_connected(false);
 			connection->close_connection();
 			connection->join();
 		}
 	}
-	next_device_id_ = 1;
-	connection_map_.clear();
+	connection_info_map_.clear();
 
 #ifdef WIN32
 	WSACleanup();
@@ -251,20 +258,18 @@ void Listener::stop()
 	LogFileOutput("Listener::stop() ... finished\n");
 }
 
-// Returns the ADJUSTED lower bound of the device id, and connection.
-// i.e. the ID that the target thinks the device index is.
+// Returns the target's device id, and connection to it from the host_id supplied by caller.
 // We store (for example) device_ids in applewin with values 1-5 for connection 1, 6-8 for connection 2, but each device things they are 1-5, and 1-3 (not 6-8).
 // However the apple side sees 1-8, and so we have to convert 6, 7, 8 into the target's 1, 2, 3
-std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_device(const uint8_t device_id) const
+std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_device(const uint8_t host_id) const
 {
 	std::pair<uint8_t, std::shared_ptr<Connection>> result;
-	for (const auto &kv : connection_map_)
+
+	auto it = connection_info_map_.find(host_id);
+	if (it != connection_info_map_.end())
 	{
-		if (device_id >= kv.first.first && device_id <= kv.first.second)
-		{
-			result = std::make_pair(device_id - kv.first.first + 1, kv.second);
-			break;
-		}
+		auto connection_info = it->second;
+		result = std::make_pair(connection_info.device_id, connection_info.connection);
 	}
 	return result;
 }
@@ -272,12 +277,9 @@ std::pair<uint8_t, std::shared_ptr<Connection>> Listener::find_connection_with_d
 std::vector<std::pair<uint8_t, Connection *>> Listener::get_all_connections() const
 {
 	std::vector<std::pair<uint8_t, Connection *>> connections;
-	for (const auto &kv : connection_map_)
+	for (const auto &kv : connection_info_map_)
 	{
-		for (uint8_t id = kv.first.first; id <= kv.first.second; ++id)
-		{
-			connections.emplace_back(id, kv.second.get());
-		}
+		connections.emplace_back(kv.first, kv.second.connection.get());
 	}
 	return connections;
 }
@@ -291,18 +293,15 @@ std::pair<int, int> Listener::first_two_disk_devices() const
 
 	cached_disk_devices = {-1, -1}; // Initialize with invalid device ids
 
-	for (uint8_t unit_number = 1; unit_number < next_device_id_; ++unit_number)
+	const auto connections = GetSPoverSLIPListener().get_all_connections();
+	for (const auto &id_and_connection : connections)
 	{
-		const auto id_and_connection = GetSPoverSLIPListener().find_connection_with_device(unit_number);
-		if (id_and_connection.second == nullptr)
-			continue;
+		const uint8_t unit_number = id_and_connection.first;
 
-		// ids from the map need adjusting down to their real ids on the device
+		// DIB request to get information block. We need the device id the target understands here, not the unit_number from the ids maintained by host
+		const StatusRequest request(Requestor::next_request_number(), id_and_connection.first, 3);
 
-		// DIB request to get information block
-		const StatusRequest request(Requestor::next_request_number(), unit_number, 3);
-
-		std::unique_ptr<Response> response = Requestor::send_request(request, id_and_connection.second.get());
+		std::unique_ptr<Response> response = Requestor::send_request(request, id_and_connection.second);
 
 		// Cast the Response to a StatusResponse
 		StatusResponse *statusResponse = dynamic_cast<StatusResponse *>(response.get());
@@ -314,6 +313,8 @@ std::pair<int, int> Listener::first_two_disk_devices() const
 			// Check if data size is at least 22 and the device type is a disk, and that the disk status is ONLINE (status[0] bit 4)
 			if (data.size() >= 22 && (data[21] == 0x01 || data[21] == 0x02 || data[21] == 0x0A) && ((data[0] & 0x10) == 0x10))
 			{
+				// We use the unique unit_number below, as eventually we'll look these up again in the Listener's map to find a connection.
+
 				// If first disk device id is not set, set it
 				if (cached_disk_devices.first == -1)
 				{
@@ -331,4 +332,22 @@ std::pair<int, int> Listener::first_two_disk_devices() const
 
 	cache_valid = true;
 	return cached_disk_devices;
+}
+
+void Listener::connection_closed(Connection *connection)
+{
+	for (auto it = connection_info_map_.begin(); it != connection_info_map_.end();)
+	{
+		if (it->second.connection.get() == connection)
+		{
+			LogFileOutput("Removing device with id: %d from listener\n", it->first);
+			it = connection_info_map_.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	// invalidate the cache of which device the disk points to, could check if it's one of the connections that was invalidated, but this is simpler
+	cache_valid = false;
 }

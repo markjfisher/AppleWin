@@ -389,7 +389,7 @@ void SmartPortOverSlip::device_count(const WORD sp_payload_loc)
 {
 	// Fill the status information directly into SP payload memory.
 	// The count is from sum of all devices across all Connections.
-	const BYTE deviceCount = Listener::get_total_device_count();
+	const BYTE deviceCount = GetSPoverSLIPListener().get_total_device_count();
 	mem[sp_payload_loc] = deviceCount;
 	mem[sp_payload_loc + 1] = 1 << 6; // no interrupt
 	mem[sp_payload_loc + 2] = 0x4D;	  // 0x4D46 == MF for vendor ID
