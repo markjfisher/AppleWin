@@ -222,6 +222,12 @@ void Listener::create_connection(unsigned int socket)
 		if (still_scanning)
 			device_id++;
 	}
+
+	// reset the drives cache if it is currently set and drive 1 id is -1, as the new connection may contain a drive we can use.
+	if (cache_valid && cached_disk_devices.first == -1)
+	{
+		cache_valid = false;
+	}
 }
 
 void Listener::start()
