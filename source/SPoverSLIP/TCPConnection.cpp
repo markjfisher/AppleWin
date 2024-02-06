@@ -23,7 +23,9 @@
 
 #include "Log.h"
 #include "SLIP.h"
-#include <Core.h>
+#include "Listener.h"
+
+extern class Listener &GetSPoverSLIPListener(void);
 
 void TCPConnection::close_connection()
 {
