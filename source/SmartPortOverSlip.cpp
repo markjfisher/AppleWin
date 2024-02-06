@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <StdAfx.h>
 #include <string>
 #include <memory>
+#include <sstream>
+#include <iomanip>
 
 #include "YamlHelper.h"
 #include "SmartPortOverSlip.h"
@@ -209,11 +211,10 @@ void SmartPortOverSlip::handle_prodos_call()
 	const uint8_t slot_num = (mem[0x43] & 0x70) >> 4;
 	const uint8_t command = mem[0x42];
 
-	// LogFileOutput("SmartPortOverSlip prodos, drive_num: %d, slot_num: %d, command: %d\n", drive_num, slot_num, command);
-
 	if (slot_num != m_slot)
 	{
 		// not for us... could be mirroring/moving? ignoring for now. see https://www.1000bit.it/support/manuali/apple/technotes/pdos/tn.pdos.20.html
+		LogFileOutput("SmartPortOverSlip ProDOS - NOT OUR SLOT! drive_num: %d, slot_num: %d, command: %d\n", drive_num, slot_num, command);
 		regs.a = 0x28;
 		regs.x = 0;
 		regs.y = 0;
@@ -227,8 +228,8 @@ void SmartPortOverSlip::handle_prodos_call()
 	std::pair<int, int> disk_devices = GetSPoverSLIPListener().first_two_disk_devices();
 	if ((drive_num == 1 && disk_devices.first == -1) || (drive_num == 2 && disk_devices.second == -1))
 	{
-		// there is no drive to support this request, so return an error
-		regs.a = 0x28;
+		// No devices found, pretend it's just an error so ProDOS keeps trying later when we do have disks.
+		regs.a = 0x27;
 		regs.x = 0;
 		regs.y = 0;
 		return;
@@ -253,11 +254,20 @@ void SmartPortOverSlip::handle_prodos_call()
 		break;
 	default:
 		// error, unknown command
+		LogFileOutput("SmartPortOverSlip ProDOS - UNKNOWN COMMAND! drive_num: %d, slot_num: %d, command: %d\n", drive_num, slot_num, command);
 		regs.a = 0x28;
 		regs.x = 0;
 		regs.y = 0;
 		break;
 	}
+}
+
+std::string getHexValues(const std::vector<uint8_t>& data) {
+    std::stringstream ss;
+    for(const auto &byte : data) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << ' ';
+    }
+    return ss.str();
 }
 
 void SmartPortOverSlip::handle_prodos_status(uint8_t drive_num, std::pair<int, int> disk_devices)
@@ -284,7 +294,7 @@ void SmartPortOverSlip::handle_prodos_status(uint8_t drive_num, std::pair<int, i
 	  // Bit 0: Disk switched
 	*/
 	const auto &status_data = response->get_data();
-	if (status_data.size() < 4)
+	if (status_data.size() >= 3)
 	{
 		// check bits 5/6 set for R/W, and the disk is online bit 4.
 		uint8_t c = status_data[0] & 0x70;
@@ -307,8 +317,10 @@ void SmartPortOverSlip::handle_prodos_status(uint8_t drive_num, std::pair<int, i
 	}
 	else
 	{
-		// status wasn't long enough, return an IO error
+		// unknown status bytes returned, return an IO error
 		LogFileOutput("SmartPortOverSlip Prodos Status, Bad DIB returned\n");
+		std::string hex = getHexValues(status_data);
+		LogFileOutput("%s\n", hex.c_str());
 		regs.a = 0x27;
 		regs.x = 0;
 		regs.y = 0;
@@ -389,7 +401,7 @@ void SmartPortOverSlip::device_count(const WORD sp_payload_loc)
 {
 	// Fill the status information directly into SP payload memory.
 	// The count is from sum of all devices across all Connections.
-	const BYTE deviceCount = Listener::get_total_device_count();
+	const BYTE deviceCount = GetSPoverSLIPListener().get_total_device_count();
 	mem[sp_payload_loc] = deviceCount;
 	mem[sp_payload_loc + 1] = 1 << 6; // no interrupt
 	mem[sp_payload_loc + 2] = 0x4D;	  // 0x4D46 == MF for vendor ID

@@ -23,6 +23,7 @@
 
 #include "Log.h"
 #include "SLIP.h"
+#include <Core.h>
 
 void TCPConnection::close_connection()
 {
@@ -54,8 +55,10 @@ void TCPConnection::send_data(const std::vector<uint8_t> &data)
 
 void TCPConnection::create_read_channel()
 {
+	auto self_ptr = shared_from_this();
+
 	// Start a new thread to listen for incoming data
-	reading_thread_ = std::thread([self = shared_from_this()]() {
+	reading_thread_ = std::thread([self = std::move(self_ptr)]() {
 		std::vector<uint8_t> complete_data;
 		std::vector<uint8_t> buffer(1024);
 		bool is_initialising = true;
@@ -126,6 +129,9 @@ void TCPConnection::create_read_channel()
 				complete_data.clear();
 			}
 		}
+		GetSPoverSLIPListener().connection_closed(self.get());
 		LogFileOutput("TCPConnection::create_read_channel - thread is EXITING\n");
 	});
+
+	reading_thread_.detach();
 }
