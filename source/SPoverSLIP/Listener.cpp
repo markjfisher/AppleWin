@@ -223,11 +223,6 @@ void Listener::create_connection(unsigned int socket)
 			device_id++;
 	}
 
-	// reset the drives cache if it is currently set and drive 1 id is -1, as the new connection may contain a drive we can use.
-	if (cache_valid && cached_disk_devices.first == -1)
-	{
-		cache_valid = false;
-	}
 }
 
 void Listener::start()
@@ -292,13 +287,7 @@ std::vector<std::pair<uint8_t, Connection *>> Listener::get_all_connections() co
 
 std::pair<int, int> Listener::first_two_disk_devices() const
 {
-	if (cache_valid)
-	{
-		return cached_disk_devices;
-	}
-
-	cached_disk_devices = {-1, -1}; // Initialize with invalid device ids
-
+	std::pair<int, int> disk_ids = {-1, -1};
 	const auto connections = GetSPoverSLIPListener().get_all_connections();
 	for (const auto &id_and_connection : connections)
 	{
@@ -322,22 +311,21 @@ std::pair<int, int> Listener::first_two_disk_devices() const
 				// We use the unique unit_number below, as eventually we'll look these up again in the Listener's map to find a connection.
 
 				// If first disk device id is not set, set it
-				if (cached_disk_devices.first == -1)
+				if (disk_ids.first == -1)
 				{
-					cached_disk_devices.first = unit_number;
+					disk_ids.first = unit_number;
 				}
 				// Else if second disk device id is not set, set it and break the loop
-				else if (cached_disk_devices.second == -1)
+				else if (disk_ids.second == -1)
 				{
-					cached_disk_devices.second = unit_number;
+					disk_ids.second = unit_number;
 					break;
 				}
 			}
 		}
 	}
 
-	cache_valid = true;
-	return cached_disk_devices;
+	return disk_ids;
 }
 
 void Listener::connection_closed(Connection *connection)
@@ -354,6 +342,4 @@ void Listener::connection_closed(Connection *connection)
 			++it;
 		}
 	}
-	// invalidate the cache of which device the disk points to, could check if it's one of the connections that was invalidated, but this is simpler
-	cache_valid = false;
 }

@@ -15,8 +15,6 @@ private:
 	std::string ip_address_;
 	uint16_t port_;
 	std::thread listening_thread_;
-	mutable std::pair<int, int> cached_disk_devices;
-	mutable bool cache_valid = false;
 
 	bool is_listening_;
 	bool should_start_;
