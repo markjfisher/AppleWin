@@ -152,7 +152,7 @@ INT_PTR CPageAdvanced::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, L
 			CheckDlgButton(hWnd, IDC_SAVESTATE_ON_EXIT, g_bSaveStateOnExit ? BST_CHECKED : BST_UNCHECKED);
                         
 			// SP over SLIP configuration values
-			auto& listener = GetSPoverSLIPListener();
+			auto& listener = GetCommandListener();
 			CheckDlgButton(hWnd, IDC_SPOSLIP_ENABLE_LISTENER, listener.get_start_on_init() ? BST_CHECKED : BST_UNCHECKED);
 			SendDlgItemMessage(hWnd, IDC_SPOSLIP_ADDRESS, WM_SETTEXT, 0, (LPARAM) listener.get_ip_address().c_str());
 			std::string port_string = std::to_string(listener.get_port());
@@ -205,7 +205,7 @@ void CPageAdvanced::DlgOK(HWND hWnd)
 	REGSAVE(TEXT(REGVALUE_SAVE_STATE_ON_EXIT), g_bSaveStateOnExit ? 1 : 0);
 
 	// SP over SLIP
-	auto& listener = GetSPoverSLIPListener();
+	auto& listener = GetCommandListener();
 	auto current_ip = listener.get_ip_address();
 	auto current_port = listener.get_port();
 

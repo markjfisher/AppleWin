@@ -601,7 +601,7 @@ namespace sa2
             ImGui::BeginTabItem("SmartPort over SLIP");
             ///////////////////////////////////////////////////////
             // CheckBox - Start on startup
-            auto& listener = GetSPoverSLIPListener();
+            auto& listener = GetCommandListener();
             bool startSPListener = listener.get_start_on_init();
             if (ImGui::Checkbox("Run Listener at startup", &startSPListener))
             {

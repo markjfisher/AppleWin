@@ -102,7 +102,7 @@ void LoadConfiguration(bool loadImages)
 
 	///////////////////////////////////////////////////////////////
 	// SmartPort over SLIP
-	auto& listener = GetSPoverSLIPListener();
+	auto& listener = GetCommandListener();
 	DWORD dwRegStartListener = 0;
 	bool bStartListener = listener.default_start_listener;
 	TCHAR tcAddress[16];
@@ -584,7 +584,7 @@ void ResetMachineState()
 
 	SoundCore_SetFade(FADE_NONE);
 	LogFileTimeUntilFirstKeyReadReset();
-	// GetSPoverSLIPListener().stop(); // We may not need to stop the listener. The card is reset, so that will send device resets, but SP over SLIP layer can stay alive
+	// GetCommandListener().stop(); // We may not need to stop the listener. The card is reset, so that will send device resets, but SP over SLIP layer can stay alive
 }
 
 

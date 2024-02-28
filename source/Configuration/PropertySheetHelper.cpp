@@ -343,11 +343,11 @@ void CPropertySheetHelper::ApplyNewConfig(const CConfigNeedingRestart& ConfigNew
                 SaveSPoverSLIPListenerStartup(ConfigNew.m_startSPOverSlipListener);
 		// if we're changing to on, start it, else stop it
 		if (ConfigNew.m_startSPOverSlipListener) {
-                        GetSPoverSLIPListener().start();
+                        GetCommandListener().start();
 		}
 		else
 		{
-                        GetSPoverSLIPListener().stop();
+                        GetCommandListener().stop();
 		}
 	}
 

@@ -37,29 +37,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CPU.h"
 #include "Log.h"
 #include "../resource/resource.h"
-#include "SPoverSLIP/CloseRequest.h"
-#include "SPoverSLIP/CloseResponse.h"
-#include "SPoverSLIP/ControlRequest.h"
-#include "SPoverSLIP/ControlResponse.h"
-#include "SPoverSLIP/FormatRequest.h"
-#include "SPoverSLIP/FormatResponse.h"
-#include "SPoverSLIP/InitRequest.h"
-#include "SPoverSLIP/InitResponse.h"
-#include "SPoverSLIP/OpenRequest.h"
-#include "SPoverSLIP/OpenResponse.h"
-#include "SPoverSLIP/ReadBlockRequest.h"
-#include "SPoverSLIP/ReadBlockResponse.h"
-#include "SPoverSLIP/ReadRequest.h"
-#include "SPoverSLIP/ReadResponse.h"
-#include "SPoverSLIP/ResetRequest.h"
-#include "SPoverSLIP/ResetResponse.h"
-#include "SPoverSLIP/Requestor.h"
-#include "SPoverSLIP/StatusRequest.h"
-#include "SPoverSLIP/StatusResponse.h"
-#include "SPoverSLIP/WriteBlockRequest.h"
-#include "SPoverSLIP/WriteBlockResponse.h"
-#include "SPoverSLIP/WriteRequest.h"
-#include "SPoverSLIP/WriteResponse.h"
+#include "rpc/commands/CloseRequest.h"
+#include "rpc/commands/CloseResponse.h"
+#include "rpc/commands/ControlRequest.h"
+#include "rpc/commands/ControlResponse.h"
+#include "rpc/commands/FormatRequest.h"
+#include "rpc/commands/FormatResponse.h"
+#include "rpc/commands/InitRequest.h"
+#include "rpc/commands/InitResponse.h"
+#include "rpc/commands/OpenRequest.h"
+#include "rpc/commands/OpenResponse.h"
+#include "rpc/commands/ReadBlockRequest.h"
+#include "rpc/commands/ReadBlockResponse.h"
+#include "rpc/commands/ReadRequest.h"
+#include "rpc/commands/ReadResponse.h"
+#include "rpc/commands/ResetRequest.h"
+#include "rpc/commands/ResetResponse.h"
+#include "rpc/commands/StatusRequest.h"
+#include "rpc/commands/StatusResponse.h"
+#include "rpc/commands/WriteBlockRequest.h"
+#include "rpc/commands/WriteBlockResponse.h"
+#include "rpc/commands/WriteRequest.h"
+#include "rpc/commands/WriteResponse.h"
+#include "rpc/service/Requestor.h"
 
 int SmartPortOverSlip::active_instances = 0;
 
@@ -94,7 +94,7 @@ void SmartPortOverSlip::Reset(const bool powerCycle)
 	if (powerCycle)
 	{
 		// send RESET to all devices
-		const auto connections = GetSPoverSLIPListener().get_all_connections();
+		const auto connections = GetCommandListener().get_all_connections();
 		for (const auto &id_and_connection : connections)
 		{
 			reset(id_and_connection.first, id_and_connection.second);
@@ -135,10 +135,10 @@ void SmartPortOverSlip::handle_smartport_call()
 		return;
 	}
 
-	const auto id_and_connection = GetSPoverSLIPListener().find_connection_with_device(unit_number);
+	const auto id_and_connection = GetCommandListener().find_connection_with_device(unit_number);
 	if (id_and_connection.second == nullptr)
 	{
-		regs.a = 1; // TODO: what value should we error with?
+		regs.a = 1;
 		regs.x = 0;
 		regs.y = 0;
 		unset_processor_status(AF_ZERO);
@@ -150,37 +150,37 @@ void SmartPortOverSlip::handle_smartport_call()
 
 	switch (command)
 	{
-	case SP_CMD_STATUS:
+	case CMD_STATUS:
 		status_sp(device_id, connection, sp_payload_loc, mem[params_loc]);
 		break;
-	case SP_CMD_READBLOCK:
+	case CMD_READ_BLOCK:
 		read_block(device_id, connection, sp_payload_loc, params_loc);
 		break;
-	case SP_CMD_WRITEBLOCK:
+	case CMD_WRITE_BLOCK:
 		write_block(device_id, connection, sp_payload_loc, params_loc);
 		break;
-	case SP_CMD_FORMAT:
+	case CMD_FORMAT:
 		format(device_id, connection);
 		break;
-	case SP_CMD_CONTROL:
+	case CMD_CONTROL:
 		control(device_id, connection, sp_payload_loc, mem[params_loc]);
 		break;
-	case SP_CMD_INIT:
+	case CMD_INIT:
 		init(device_id, connection);
 		break;
-	case SP_CMD_OPEN:
+	case CMD_OPEN:
 		open(device_id, connection);
 		break;
-	case SP_CMD_CLOSE:
+	case CMD_CLOSE:
 		close(device_id, connection);
 		break;
-	case SP_CMD_READ:
+	case CMD_READ:
 		read(device_id, connection, sp_payload_loc, params_loc);
 		break;
-	case SP_CMD_WRITE:
+	case CMD_WRITE:
 		write(device_id, connection, sp_payload_loc, params_loc);
 		break;
-	case SP_CMD_RESET:
+	case CMD_RESET:
 		reset(device_id, connection);
 		break;
 	default:
@@ -225,7 +225,10 @@ void SmartPortOverSlip::handle_prodos_call()
 	// We need to look for the first registered device of all connections to us that are disks, and use first 2 as our drives.
 
 	// we can call the listener to do this for us, and it can cache the results so we can keep calling it
-	std::pair<int, int> disk_devices = GetSPoverSLIPListener().first_two_disk_devices();
+	std::pair<int, int> disk_devices = GetCommandListener().first_two_disk_devices([](const std::vector<uint8_t>& data) -> bool {
+		return data.size() >= 22 && (data[21] == 0x01 || data[21] == 0x02 || data[21] == 0x0A) && ((data[0] & 0x10) == 0x10);
+	});
+
 	if ((drive_num == 1 && disk_devices.first == -1) || (drive_num == 2 && disk_devices.second == -1))
 	{
 		// No devices found, pretend it's just an error so ProDOS keeps trying later when we do have disks.
@@ -280,7 +283,7 @@ void SmartPortOverSlip::handle_prodos_status(uint8_t drive_num, std::pair<int, i
 	X-register (low-byte) and Y-register (high-byte).
 	*/
 	auto device_id = drive_num == 1 ? disk_devices.first : disk_devices.second;
-	auto id_connection = GetSPoverSLIPListener().find_connection_with_device(device_id);
+	auto id_connection = GetCommandListener().find_connection_with_device(device_id);
 	std::unique_ptr<StatusResponse> response = status_pd(id_connection.first, id_connection.second.get(), 0);
 	// the first byte of the data in the status response:
 	/*
@@ -332,7 +335,7 @@ void SmartPortOverSlip::handle_prodos_read(uint8_t drive_num, std::pair<int, int
 	// $44-$45 = buffer pointer
 	WORD buffer_location = static_cast<WORD>(mem[0x44]) + static_cast<WORD>(mem[0x45] << 8);
 	auto device_id = drive_num == 1 ? disk_devices.first : disk_devices.second;
-	auto id_connection = GetSPoverSLIPListener().find_connection_with_device(device_id);
+	auto id_connection = GetCommandListener().find_connection_with_device(device_id);
 
 	// Do a ReadRequest, and shove the 512 byte block into the required memory
 	ReadBlockRequest request(Requestor::next_request_number(), id_connection.first);
@@ -359,7 +362,7 @@ void SmartPortOverSlip::handle_prodos_write(uint8_t drive_num, std::pair<int, in
 	// $44-$45 = buffer pointer
 	WORD buffer_location = static_cast<WORD>(mem[0x44]) + static_cast<WORD>(mem[0x45] << 8);
 	auto device_id = drive_num == 1 ? disk_devices.first : disk_devices.second;
-	auto id_connection = GetSPoverSLIPListener().find_connection_with_device(device_id);
+	auto id_connection = GetCommandListener().find_connection_with_device(device_id);
 
 	WriteBlockRequest request(Requestor::next_request_number(), id_connection.first);
 	// $46-47 = Block Number
@@ -401,7 +404,7 @@ void SmartPortOverSlip::device_count(const WORD sp_payload_loc)
 {
 	// Fill the status information directly into SP payload memory.
 	// The count is from sum of all devices across all Connections.
-	const BYTE deviceCount = GetSPoverSLIPListener().get_total_device_count();
+	const BYTE deviceCount = GetCommandListener().get_total_device_count();
 	mem[sp_payload_loc] = deviceCount;
 	mem[sp_payload_loc + 1] = 1 << 6; // no interrupt
 	mem[sp_payload_loc + 2] = 0x4D;	  // 0x4D46 == MF for vendor ID

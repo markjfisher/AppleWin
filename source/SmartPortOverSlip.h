@@ -6,27 +6,12 @@
 #include <memory>
 
 #include "CPU.h"
-#include "SPoverSLIP/Listener.h"
-#include "SPoverSLIP/Response.h"
-#include "SPoverSLIP/StatusResponse.h"
+#include "rpc/service/Listener.h"
+#include "rpc/commands/Response.h"
+#include "rpc/commands/StatusResponse.h"
 
 class ControlResponse;
 class InitResponse;
-
-enum
-{
-	SP_CMD_STATUS = 0,
-	SP_CMD_READBLOCK = 1,
-	SP_CMD_WRITEBLOCK = 2,
-	SP_CMD_FORMAT = 3,
-	SP_CMD_CONTROL = 4,
-	SP_CMD_INIT = 5,
-	SP_CMD_OPEN = 6,
-	SP_CMD_CLOSE = 7,
-	SP_CMD_READ = 8,
-	SP_CMD_WRITE = 9,
-	SP_CMD_RESET = 10
-};
 
 class SmartPortOverSlip : public Card
 {

@@ -120,35 +120,37 @@ set(SOURCE_FILES
   linux/duplicates/SNESMAX.cpp
   linux/duplicates/Keyboard.cpp
 
-  SPoverSLIP/CloseRequest.cpp
-  SPoverSLIP/CloseResponse.cpp
-  SPoverSLIP/Connection.cpp
-  SPoverSLIP/ControlRequest.cpp
-  SPoverSLIP/ControlResponse.cpp
-  SPoverSLIP/FormatRequest.cpp
-  SPoverSLIP/FormatResponse.cpp
-  SPoverSLIP/InitRequest.cpp
-  SPoverSLIP/InitResponse.cpp
-  SPoverSLIP/Listener.cpp
-  SPoverSLIP/OpenRequest.cpp
-  SPoverSLIP/OpenResponse.cpp
-  SPoverSLIP/ReadBlockRequest.cpp
-  SPoverSLIP/ReadBlockResponse.cpp
-  SPoverSLIP/ReadRequest.cpp
-  SPoverSLIP/ReadResponse.cpp
-  SPoverSLIP/Request.cpp
-  SPoverSLIP/Requestor.cpp
-  SPoverSLIP/ResetRequest.cpp
-  SPoverSLIP/ResetResponse.cpp
-  SPoverSLIP/Response.cpp
-  SPoverSLIP/SLIP.cpp
-  SPoverSLIP/StatusRequest.cpp
-  SPoverSLIP/StatusResponse.cpp
-  SPoverSLIP/TCPConnection.cpp
-  SPoverSLIP/WriteBlockRequest.cpp
-  SPoverSLIP/WriteBlockResponse.cpp
-  SPoverSLIP/WriteRequest.cpp
-  SPoverSLIP/WriteResponse.cpp
+  rpc/service/Listener.cpp
+  rpc/service/TCPConnection.cpp
+  rpc/service/Connection.cpp
+  rpc/service/Requestor.cpp
+
+  rpc/slip/SLIP.cpp
+
+  rpc/commands/Request.cpp
+  rpc/commands/FormatRequest.cpp
+  rpc/commands/Response.cpp
+  rpc/commands/CloseRequest.cpp
+  rpc/commands/WriteRequest.cpp
+  rpc/commands/InitRequest.cpp
+  rpc/commands/InitResponse.cpp
+  rpc/commands/WriteBlockRequest.cpp
+  rpc/commands/CloseResponse.cpp
+  rpc/commands/ControlResponse.cpp
+  rpc/commands/OpenRequest.cpp
+  rpc/commands/ReadRequest.cpp
+  rpc/commands/OpenResponse.cpp
+  rpc/commands/ResetRequest.cpp
+  rpc/commands/ReadBlockRequest.cpp
+  rpc/commands/ReadBlockResponse.cpp
+  rpc/commands/FormatResponse.cpp
+  rpc/commands/ResetResponse.cpp
+  rpc/commands/StatusRequest.cpp
+  rpc/commands/WriteBlockResponse.cpp
+  rpc/commands/ReadResponse.cpp
+  rpc/commands/StatusResponse.cpp
+  rpc/commands/WriteResponse.cpp
+  rpc/commands/ControlRequest.cpp
 
   Z80VICE/z80.cpp
   Z80VICE/z80mem.cpp
@@ -247,38 +249,38 @@ set(HEADER_FILES
   linux/network/slirp2.h
   linux/network/portfwds.h
 
-  SPoverSLIP/CloseRequest.h
-  SPoverSLIP/CloseResponse.h
-  SPoverSLIP/Connection.h
-  SPoverSLIP/ControlRequest.h
-  SPoverSLIP/ControlResponse.h
-  SPoverSLIP/FormatRequest.h
-  SPoverSLIP/FormatResponse.h
-  SPoverSLIP/InitRequest.h
-  SPoverSLIP/InitResponse.h
-  SPoverSLIP/Listener.h
-  SPoverSLIP/OpenRequest.h
-  SPoverSLIP/OpenResponse.h
-  SPoverSLIP/Packet.h
-  SPoverSLIP/ReadBlockRequest.h
-  SPoverSLIP/ReadBlockResponse.h
-  SPoverSLIP/ReadRequest.h
-  SPoverSLIP/ReadResponse.h
-  SPoverSLIP/Request.h
-  SPoverSLIP/Requestor.h
-  SPoverSLIP/ResetRequest.h
-  SPoverSLIP/ResetResponse.h
-  SPoverSLIP/Response.h
-  SPoverSLIP/SLIP.h
-  SPoverSLIP/SmartPortCodes.h
-  SPoverSLIP/SPoSLIP.h
-  SPoverSLIP/StatusRequest.h
-  SPoverSLIP/StatusResponse.h
-  SPoverSLIP/TCPConnection.h
-  SPoverSLIP/WriteBlockRequest.h
-  SPoverSLIP/WriteBlockResponse.h
-  SPoverSLIP/WriteRequest.h
-  SPoverSLIP/WriteResponse.h
+  rpc/service/Requestor.h
+  rpc/service/Connection.h
+  rpc/service/Listener.h
+  rpc/service/TCPConnection.h
+
+  rpc/slip/SLIP.h
+
+  rpc/commands/StatusRequest.h
+  rpc/commands/InitResponse.h
+  rpc/commands/CloseResponse.h
+  rpc/commands/ReadResponse.h
+  rpc/commands/Response.h
+  rpc/commands/ResetResponse.h
+  rpc/commands/OpenResponse.h
+  rpc/commands/OpenRequest.h
+  rpc/commands/CloseRequest.h
+  rpc/commands/InitRequest.h
+  rpc/commands/FormatResponse.h
+  rpc/commands/FormatRequest.h
+  rpc/commands/ControlRequest.h
+  rpc/commands/ReadBlockRequest.h
+  rpc/commands/WriteResponse.h
+  rpc/commands/StatusResponse.h
+  rpc/commands/WriteBlockRequest.h
+  rpc/commands/CommandPacket.h
+  rpc/commands/ReadRequest.h
+  rpc/commands/ReadBlockResponse.h
+  rpc/commands/ControlResponse.h
+  rpc/commands/ResetRequest.h
+  rpc/commands/Request.h
+  rpc/commands/WriteRequest.h
+  rpc/commands/WriteBlockResponse.h
 
   Z80VICE/z80.h
   Z80VICE/z80mem.h
