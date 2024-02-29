@@ -6,9 +6,9 @@
 #include <memory>
 
 #include "CPU.h"
-#include "rpc/service/Listener.h"
-#include "rpc/commands/Response.h"
-#include "rpc/commands/StatusResponse.h"
+#include "devrelay/service/Listener.h"
+#include "devrelay/types/Response.h"
+#include "devrelay/commands/Status.h"
 
 class ControlResponse;
 class InitResponse;

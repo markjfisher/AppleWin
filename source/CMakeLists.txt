@@ -120,37 +120,27 @@ set(SOURCE_FILES
   linux/duplicates/SNESMAX.cpp
   linux/duplicates/Keyboard.cpp
 
-  rpc/service/Listener.cpp
-  rpc/service/TCPConnection.cpp
-  rpc/service/Connection.cpp
-  rpc/service/Requestor.cpp
+  devrelay/commands/Close.cpp
+  devrelay/commands/Control.cpp
+  devrelay/commands/Format.cpp
+  devrelay/commands/Init.cpp
+  devrelay/commands/Open.cpp
+  devrelay/commands/ReadBlock.cpp
+  devrelay/commands/Read.cpp
+  devrelay/commands/Reset.cpp
+  devrelay/commands/Status.cpp
+  devrelay/commands/WriteBlock.cpp
+  devrelay/commands/Write.cpp
 
-  rpc/slip/SLIP.cpp
+  devrelay/service/Connection.cpp
+  devrelay/service/Listener.cpp
+  devrelay/service/Requestor.cpp
+  devrelay/service/TCPConnection.cpp
 
-  rpc/commands/Request.cpp
-  rpc/commands/FormatRequest.cpp
-  rpc/commands/Response.cpp
-  rpc/commands/CloseRequest.cpp
-  rpc/commands/WriteRequest.cpp
-  rpc/commands/InitRequest.cpp
-  rpc/commands/InitResponse.cpp
-  rpc/commands/WriteBlockRequest.cpp
-  rpc/commands/CloseResponse.cpp
-  rpc/commands/ControlResponse.cpp
-  rpc/commands/OpenRequest.cpp
-  rpc/commands/ReadRequest.cpp
-  rpc/commands/OpenResponse.cpp
-  rpc/commands/ResetRequest.cpp
-  rpc/commands/ReadBlockRequest.cpp
-  rpc/commands/ReadBlockResponse.cpp
-  rpc/commands/FormatResponse.cpp
-  rpc/commands/ResetResponse.cpp
-  rpc/commands/StatusRequest.cpp
-  rpc/commands/WriteBlockResponse.cpp
-  rpc/commands/ReadResponse.cpp
-  rpc/commands/StatusResponse.cpp
-  rpc/commands/WriteResponse.cpp
-  rpc/commands/ControlRequest.cpp
+  devrelay/slip/SLIP.cpp
+
+  devrelay/types/Request.cpp
+  devrelay/types/Response.cpp
 
   Z80VICE/z80.cpp
   Z80VICE/z80mem.cpp
@@ -249,38 +239,29 @@ set(HEADER_FILES
   linux/network/slirp2.h
   linux/network/portfwds.h
 
-  rpc/service/Requestor.h
-  rpc/service/Connection.h
-  rpc/service/Listener.h
-  rpc/service/TCPConnection.h
+  devrelay/commands/Close.h
+  devrelay/commands/Control.h
+  devrelay/commands/Format.h
+  devrelay/commands/Init.h
+  devrelay/commands/Open.h
+  devrelay/commands/ReadBlock.h
+  devrelay/commands/Read.h
+  devrelay/commands/Reset.h
+  devrelay/commands/Status.h
+  devrelay/commands/WriteBlock.h
+  devrelay/commands/Write.h
 
-  rpc/slip/SLIP.h
+  devrelay/service/Connection.h
+  devrelay/service/Listener.h
+  devrelay/service/Requestor.h
+  devrelay/service/TCPConnection.h
 
-  rpc/commands/StatusRequest.h
-  rpc/commands/InitResponse.h
-  rpc/commands/CloseResponse.h
-  rpc/commands/ReadResponse.h
-  rpc/commands/Response.h
-  rpc/commands/ResetResponse.h
-  rpc/commands/OpenResponse.h
-  rpc/commands/OpenRequest.h
-  rpc/commands/CloseRequest.h
-  rpc/commands/InitRequest.h
-  rpc/commands/FormatResponse.h
-  rpc/commands/FormatRequest.h
-  rpc/commands/ControlRequest.h
-  rpc/commands/ReadBlockRequest.h
-  rpc/commands/WriteResponse.h
-  rpc/commands/StatusResponse.h
-  rpc/commands/WriteBlockRequest.h
-  rpc/commands/CommandPacket.h
-  rpc/commands/ReadRequest.h
-  rpc/commands/ReadBlockResponse.h
-  rpc/commands/ControlResponse.h
-  rpc/commands/ResetRequest.h
-  rpc/commands/Request.h
-  rpc/commands/WriteRequest.h
-  rpc/commands/WriteBlockResponse.h
+  devrelay/slip/SLIP.h
+
+  devrelay/types/Command.h
+  devrelay/types/Request.h
+  devrelay/types/Response.h
+
 
   Z80VICE/z80.h
   Z80VICE/z80mem.h
