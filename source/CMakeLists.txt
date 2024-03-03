@@ -142,6 +142,8 @@ set(SOURCE_FILES
   devrelay/types/Request.cpp
   devrelay/types/Response.cpp
 
+  devrelay/util.cpp
+
   Z80VICE/z80.cpp
   Z80VICE/z80mem.cpp
   Z80VICE/daa.cpp
@@ -262,6 +264,7 @@ set(HEADER_FILES
   devrelay/types/Request.h
   devrelay/types/Response.h
 
+  devrelay/util.h
 
   Z80VICE/z80.h
   Z80VICE/z80mem.h
