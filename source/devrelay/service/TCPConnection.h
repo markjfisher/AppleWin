@@ -1,5 +1,7 @@
 #pragma once
 
+#if defined(DEV_RELAY_SLIP) && defined(SLIP_PROTOCOL_NET)
+
 #include <memory>
 #include <string>
 
@@ -20,3 +22,4 @@ public:
 private:
 	int socket_;
 };
+#endif

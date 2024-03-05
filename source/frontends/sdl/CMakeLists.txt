@@ -1,5 +1,6 @@
 include(FindPkgConfig)
 include(FindOpenGL)
+include(${CMAKE_SOURCE_DIR}/source/slip.cmake)
 
 add_executable(sa2)
 

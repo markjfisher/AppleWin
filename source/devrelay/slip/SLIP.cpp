@@ -1,3 +1,5 @@
+#ifdef DEV_RELAY_SLIP
+
 #include <iostream>
 
 #include "SLIP.h"
@@ -142,3 +144,6 @@ std::vector<std::vector<uint8_t>> SLIP::split_into_packets(const uint8_t *data, 
 
 	return decoded_packets;
 }
+
+
+#endif

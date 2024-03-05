@@ -1,4 +1,5 @@
 #pragma once
+#ifdef DEV_RELAY_SLIP
 
 #include <array>
 #include <atomic>
@@ -27,8 +28,6 @@ public:
 
 	void join();
 
-  static constexpr std::array<uint8_t, 4> reboot_sequence = {0xFF, 0x00, 0x00, 0xFF};
-
 private:
 	std::atomic<bool> is_connected_{false};
 
@@ -39,3 +38,5 @@ protected:
 	std::mutex data_mutex_;
 	std::condition_variable data_cv_;
 };
+
+#endif

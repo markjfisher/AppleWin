@@ -1,3 +1,5 @@
+#ifdef DEV_RELAY_SLIP
+
 #include "Reset.h"
 
 ResetRequest::ResetRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_RESET, device_id) {}
@@ -22,6 +24,17 @@ std::unique_ptr<Response> ResetRequest::deserialize(const std::vector<uint8_t> &
 	return response;
 }
 
+void ResetRequest::create_command(uint8_t* cmd_data) const
+{
+	init_command(cmd_data);
+}
+
+std::unique_ptr<Response> ResetRequest::create_response(uint8_t source, uint8_t status, const uint8_t* data, uint16_t num) const
+{
+	std::unique_ptr<ResetResponse> response = std::make_unique<ResetResponse>(get_request_sequence_number(), status);
+	return response;
+}
+
 ResetResponse::ResetResponse(const uint8_t request_sequence_number, const uint8_t status) : Response(request_sequence_number, status) {}
 
 std::vector<uint8_t> ResetResponse::serialize() const
@@ -31,3 +44,6 @@ std::vector<uint8_t> ResetResponse::serialize() const
 	data.push_back(this->get_status());
 	return data;
 }
+
+
+#endif

@@ -1,3 +1,5 @@
+#ifdef DEV_RELAY_SLIP
+
 #include "Write.h"
 
 WriteRequest::WriteRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_WRITE, device_id), byte_count_(), address_() {}
@@ -39,6 +41,28 @@ void WriteRequest::set_data_from_ptr(const uint8_t *ptr, const size_t offset, co
 	data_.insert(data_.end(), ptr + offset, ptr + offset + length);
 }
 
+void WriteRequest::create_command(uint8_t* cmd_data) const
+{
+	init_command(cmd_data);
+	std::copy(byte_count_.begin(), byte_count_.end(), cmd_data + 4);
+	std::copy(address_.begin(), address_.end(), cmd_data + 6);
+}
+
+void WriteRequest::copy_payload(uint8_t* data) const {
+	std::copy(data_.begin(), data_.end(), data);
+}
+
+size_t WriteRequest::payload_size() const { 
+	return data_.size();
+}
+
+std::unique_ptr<Response> WriteRequest::create_response(uint8_t source, uint8_t status, const uint8_t* data, uint16_t num) const
+{
+	std::unique_ptr<WriteResponse> response = std::make_unique<WriteResponse>(get_request_sequence_number(), status);
+	return response;
+}
+
+
 WriteResponse::WriteResponse(const uint8_t request_sequence_number, const uint8_t status) : Response(request_sequence_number, status) {}
 
 std::vector<uint8_t> WriteResponse::serialize() const
@@ -48,3 +72,6 @@ std::vector<uint8_t> WriteResponse::serialize() const
 	data.push_back(this->get_status());
 	return data;
 }
+
+
+#endif

@@ -1,3 +1,5 @@
+#if defined(DEV_RELAY_SLIP) && defined(SLIP_PROTOCOL_NET)
+
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -339,3 +341,6 @@ void Listener::connection_closed(Connection *connection)
 		}
 	}
 }
+
+
+#endif

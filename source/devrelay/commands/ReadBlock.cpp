@@ -1,7 +1,6 @@
-#include "ReadBlock.h"
-#include "Log.h"
+#ifdef DEV_RELAY_SLIP
 
-#include <cstdint>
+#include "ReadBlock.h"
 
 ReadBlockRequest::ReadBlockRequest(const uint8_t request_sequence_number, const uint8_t device_id, uint16_t block_size) : Request(request_sequence_number, CMD_READ_BLOCK, device_id), block_number_{}, block_size_(block_size) {}
 
@@ -14,7 +13,6 @@ std::vector<uint8_t> ReadBlockRequest::serialize() const
 	request_data.push_back(this->get_block_size() & 0xFF);
 	request_data.push_back((this->get_block_size() >> 8) & 0xFF);
 	request_data.insert(request_data.end(), block_number_.begin(), block_number_.end());
-
 	return request_data;
 }
 
@@ -46,6 +44,22 @@ void ReadBlockRequest::set_block_number_from_bytes(uint8_t l, uint8_t m, uint8_t
 	block_number_[2] = h;
 }
 
+void ReadBlockRequest::create_command(uint8_t *cmd_data) const {
+	init_command(cmd_data);
+	std::copy(block_number_.begin(), block_number_.end(), cmd_data + 4);
+}
+
+std::unique_ptr<Response> ReadBlockRequest::create_response(uint8_t source, uint8_t status, const uint8_t *data, uint16_t num) const {
+	std::unique_ptr<ReadBlockResponse> response = std::make_unique<ReadBlockResponse>(get_request_sequence_number(), status, num);
+	// Copy the return data if the status is OK
+	if (status == 0) {
+		std::vector<uint8_t> data_vector(data, data + num);
+		response->set_block_data(data_vector.begin(), data_vector.end());
+	}
+	return response;
+}
+
+
 ReadBlockResponse::ReadBlockResponse(const uint8_t request_sequence_number, const uint8_t status, uint16_t block_size) : Response(request_sequence_number, status), block_size_(block_size) {
 	block_data_.resize(block_size_);
 }
@@ -69,3 +83,6 @@ const std::vector<uint8_t>& ReadBlockResponse::get_block_data() const {
 }
 
 const uint16_t ReadBlockResponse::get_block_size() const { return block_size_; }
+
+
+#endif

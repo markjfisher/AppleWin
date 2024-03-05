@@ -24,6 +24,11 @@ public:
 	const std::vector<uint8_t> &get_data() const { return data_; }
 	void set_data_from_ptr(const uint8_t *ptr, size_t offset, size_t length);
 
+	void create_command(uint8_t *output_data) const override;
+	void copy_payload(uint8_t *data) const override;
+	size_t payload_size() const override;
+	std::unique_ptr<Response> create_response(uint8_t source, uint8_t status, const uint8_t *data, uint16_t num) const override;
+
 private:
 	std::array<uint8_t, 2> byte_count_;
 	std::array<uint8_t, 3> address_;

@@ -1,3 +1,5 @@
+#ifdef DEV_RELAY_SLIP
+
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
@@ -48,3 +50,5 @@ void Connection::join()
 		reading_thread_.join();
 	}
 }
+
+#endif

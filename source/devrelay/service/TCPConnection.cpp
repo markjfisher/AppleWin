@@ -1,3 +1,5 @@
+#if defined(DEV_RELAY_SLIP) && defined(SLIP_PROTOCOL_NET)
+
 #include <cstring>
 #include <iostream>
 #include <thread>
@@ -137,3 +139,5 @@ void TCPConnection::create_read_channel()
 
 	reading_thread_.detach();
 }
+
+#endif

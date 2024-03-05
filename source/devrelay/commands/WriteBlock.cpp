@@ -1,3 +1,5 @@
+#ifdef DEV_RELAY_SLIP
+
 #include "WriteBlock.h"
 #include <cstdint>
 
@@ -45,6 +47,26 @@ void WriteBlockRequest::set_block_number_from_bytes(uint8_t l, uint8_t m, uint8_
 	block_number_[2] = h;
 }
 
+void WriteBlockRequest::create_command(uint8_t* cmd_data) const
+{
+	init_command(cmd_data);
+	std::copy(block_number_.begin(), block_number_.end(), cmd_data + 4);
+}
+
+void WriteBlockRequest::copy_payload(uint8_t* data) const {
+	std::copy(block_data_.begin(), block_data_.end(), data);
+}
+
+size_t WriteBlockRequest::payload_size() const { 
+	return block_data_.size();
+}
+
+std::unique_ptr<Response> WriteBlockRequest::create_response(uint8_t source, uint8_t status, const uint8_t* data, uint16_t num) const
+{
+	std::unique_ptr<WriteBlockResponse> response = std::make_unique<WriteBlockResponse>(get_request_sequence_number(), status);
+	return response;
+}
+
 WriteBlockResponse::WriteBlockResponse(const uint8_t request_sequence_number, const uint8_t status) : Response(request_sequence_number, status) {}
 
 std::vector<uint8_t> WriteBlockResponse::serialize() const
@@ -54,3 +76,6 @@ std::vector<uint8_t> WriteBlockResponse::serialize() const
 	data.push_back(this->get_status());
 	return data;
 }
+
+
+#endif

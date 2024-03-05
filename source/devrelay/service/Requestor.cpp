@@ -1,3 +1,5 @@
+#ifdef DEV_RELAY_SLIP
+
 #include <iostream>
 
 #include "Requestor.h"
@@ -33,3 +35,5 @@ uint8_t Requestor::next_request_number()
 	request_number_ = (request_number_ + 1) % 256;
 	return current_number;
 }
+
+#endif

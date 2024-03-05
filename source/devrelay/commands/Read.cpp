@@ -1,3 +1,5 @@
+#ifdef DEV_RELAY_SLIP
+
 #include "Read.h"
 
 ReadRequest::ReadRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_READ, device_id), byte_count_(), address_() {}
@@ -36,6 +38,24 @@ void ReadRequest::set_byte_count_from_ptr(const uint8_t *ptr, const size_t offse
 
 void ReadRequest::set_address_from_ptr(const uint8_t *ptr, const size_t offset) { std::copy_n(ptr + offset, address_.size(), address_.begin()); }
 
+void ReadRequest::create_command(uint8_t* cmd_data) const
+{
+	init_command(cmd_data);
+	std::copy(byte_count_.begin(), byte_count_.end(), cmd_data + 4);
+	std::copy(address_.begin(), address_.end(), cmd_data + 6);
+}
+
+std::unique_ptr<Response> ReadRequest::create_response(uint8_t source, uint8_t status, const uint8_t* data, uint16_t num) const
+{
+	std::unique_ptr<ReadResponse> response = std::make_unique<ReadResponse>(get_request_sequence_number(), status);
+	// Copy the return data if the status is OK
+	if (status == 0) {
+		std::vector<uint8_t> data_vector(data, data + num);
+		response->set_data(data_vector.begin(), data_vector.end());
+	}
+	return response;
+}
+
 
 ReadResponse::ReadResponse(const uint8_t request_sequence_number, const uint8_t status) : Response(request_sequence_number, status) {}
 
@@ -54,3 +74,6 @@ void ReadResponse::set_data(const std::vector<uint8_t>::const_iterator &begin, c
 	data_.resize(new_size);
 	std::copy(begin, end, data_.begin()); // NOLINT(performance-unnecessary-value-param)
 }
+
+
+#endif

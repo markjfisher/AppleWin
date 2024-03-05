@@ -30,6 +30,8 @@ endif()
 
 find_package(Boost REQUIRED)
 
+include(${CMAKE_SOURCE_DIR}/source/slip.cmake)
+
 set(SOURCE_FILES
   Tfe/tfearch.cpp
   Tfe/tfesupp.cpp
@@ -131,17 +133,14 @@ set(SOURCE_FILES
   devrelay/commands/Status.cpp
   devrelay/commands/WriteBlock.cpp
   devrelay/commands/Write.cpp
-
+  devrelay/service/COMConnection.cpp
   devrelay/service/Connection.cpp
   devrelay/service/Listener.cpp
   devrelay/service/Requestor.cpp
   devrelay/service/TCPConnection.cpp
-
   devrelay/slip/SLIP.cpp
-
   devrelay/types/Request.cpp
   devrelay/types/Response.cpp
-
   devrelay/util.cpp
 
   Z80VICE/z80.cpp
@@ -252,18 +251,15 @@ set(HEADER_FILES
   devrelay/commands/Status.h
   devrelay/commands/WriteBlock.h
   devrelay/commands/Write.h
-
+  devrelay/service/COMConnection.h
   devrelay/service/Connection.h
   devrelay/service/Listener.h
   devrelay/service/Requestor.h
   devrelay/service/TCPConnection.h
-
   devrelay/slip/SLIP.h
-
   devrelay/types/Command.h
   devrelay/types/Request.h
   devrelay/types/Response.h
-
   devrelay/util.h
 
   Z80VICE/z80.h
