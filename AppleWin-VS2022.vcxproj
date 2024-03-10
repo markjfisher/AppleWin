@@ -27,9 +27,27 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="source\SPoverSLIP\CloseRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\CloseResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\ControlResponse.h" />
+    <ClInclude Include="source\devrelay\commands\Close.h" />
+    <ClInclude Include="source\devrelay\commands\Control.h" />
+    <ClInclude Include="source\devrelay\commands\Format.h" />
+    <ClInclude Include="source\devrelay\commands\Init.h" />
+    <ClInclude Include="source\devrelay\commands\Open.h" />
+    <ClInclude Include="source\devrelay\commands\Read.h" />
+    <ClInclude Include="source\devrelay\commands\ReadBlock.h" />
+    <ClInclude Include="source\devrelay\commands\Reset.h" />
+    <ClInclude Include="source\devrelay\commands\Status.h" />
+    <ClInclude Include="source\devrelay\commands\Write.h" />
+    <ClInclude Include="source\devrelay\commands\WriteBlock.h" />
+    <ClInclude Include="source\devrelay\service\COMConnection.h" />
+    <ClInclude Include="source\devrelay\service\Connection.h" />
+    <ClInclude Include="source\devrelay\service\Listener.h" />
+    <ClInclude Include="source\devrelay\service\Requestor.h" />
+    <ClInclude Include="source\devrelay\service\TCPConnection.h" />
+    <ClInclude Include="source\devrelay\slip\SLIP.h" />
+    <ClInclude Include="source\devrelay\types\Command.h" />
+    <ClInclude Include="source\devrelay\types\Request.h" />
+    <ClInclude Include="source\devrelay\types\Response.h" />
+    <ClInclude Include="source\devrelay\util.h" />
     <ClInclude Include="resource\resource.h" />
     <ClInclude Include="resource\winres.h" />
     <ClInclude Include="source\6522.h" />
@@ -87,31 +105,6 @@
     <ClInclude Include="source\FourPlay.h" />
     <ClInclude Include="source\FrameBase.h" />
     <ClInclude Include="source\SmartPortOverSlip.h" />
-    <ClInclude Include="source\SPoverSLIP\Connection.h" />
-    <ClInclude Include="source\SPoverSLIP\ControlRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\FormatRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\FormatResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\InitRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\InitResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\Listener.h" />
-    <ClInclude Include="source\SPoverSLIP\OpenRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\OpenResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\Packet.h" />
-    <ClInclude Include="source\SPoverSLIP\ReadBlockRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\ReadBlockResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\ReadRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\ReadResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\Request.h" />
-    <ClInclude Include="source\SPoverSLIP\Requestor.h" />
-    <ClInclude Include="source\SPoverSLIP\ResetRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\ResetResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\Response.h" />
-    <ClInclude Include="source\SPoverSLIP\SLIP.h" />
-    <ClInclude Include="source\SPoverSLIP\SmartPortCodes.h" />
-    <ClInclude Include="source\SPoverSLIP\SPoSLIP.h" />
-    <ClInclude Include="source\SPoverSLIP\StatusRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\StatusResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\TCPConnection.h" />
     <ClInclude Include="source\Harddisk.h" />
     <ClInclude Include="source\Interface.h" />
     <ClInclude Include="source\Joystick.h" />
@@ -138,10 +131,6 @@
     <ClInclude Include="source\SoundCore.h" />
     <ClInclude Include="source\Speaker.h" />
     <ClInclude Include="source\Speech.h" />
-    <ClInclude Include="source\SPoverSLIP\WriteBlockRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\WriteBlockResponse.h" />
-    <ClInclude Include="source\SPoverSLIP\WriteRequest.h" />
-    <ClInclude Include="source\SPoverSLIP\WriteResponse.h" />
     <ClInclude Include="source\SSI263.h" />
     <ClInclude Include="source\SSI263Phonemes.h" />
     <ClInclude Include="source\StdAfx.h" />
@@ -185,13 +174,64 @@
     <Text Include="docs\Wishlist.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\SPoverSLIP\CloseRequest.cpp">
+    <ClCompile Include="source\devrelay\commands\Close.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\CloseResponse.cpp">
+    <ClCompile Include="source\devrelay\commands\Control.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\ControlResponse.cpp">
+    <ClCompile Include="source\devrelay\commands\Format.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\commands\Init.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\commands\Open.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\commands\Read.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\commands\ReadBlock.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\commands\Reset.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\commands\Status.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\commands\Write.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\commands\WriteBlock.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\service\COMConnection.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\service\Connection.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\service\Listener.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\service\Requestor.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\service\TCPConnection.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\slip\SLIP.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\types\Request.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\types\Response.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="source\devrelay\util.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="source\6522.cpp" />
@@ -219,72 +259,6 @@
     <ClCompile Include="source\FourPlay.cpp" />
     <ClCompile Include="source\FrameBase.cpp" />
     <ClCompile Include="source\SmartPortOverSlip.cpp" />
-    <ClCompile Include="source\SPoverSLIP\Connection.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\ControlRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\FormatRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\FormatResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\InitRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\InitResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\Listener.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\OpenRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\OpenResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\ReadBlockRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\ReadBlockResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\ReadRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\ReadResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\Request.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\Requestor.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\ResetRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\ResetResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\Response.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\SLIP.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\StatusRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\StatusResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\TCPConnection.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="source\MockingboardCardManager.cpp" />
     <ClCompile Include="source\RGBMonitor.cpp" />
     <ClCompile Include="source\SAM.cpp" />
@@ -325,18 +299,6 @@
     <ClCompile Include="source\SoundCore.cpp" />
     <ClCompile Include="source\Speaker.cpp" />
     <ClCompile Include="source\Speech.cpp" />
-    <ClCompile Include="source\SPoverSLIP\WriteBlockRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\WriteBlockResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\WriteRequest.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="source\SPoverSLIP\WriteResponse.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="source\SSI263.cpp" />
     <ClCompile Include="source\StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -585,7 +547,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;YAML_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;YAML_DECLARE_STATIC;%(PreprocessorDefinitions);DEV_RELAY_SLIP;SLIP_PROTOCOL_NET</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>source;source\cpu;source\debugger;zlib;zip_lib;libyaml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -612,7 +574,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;YAML_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;YAML_DECLARE_STATIC;%(PreprocessorDefinitions);DEV_RELAY_SLIP;SLIP_PROTOCOL_NET</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>source;source\cpu;source\debugger;zlib;zip_lib;libyaml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -641,7 +603,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;NO_DIRECT_X;YAML_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;NO_DIRECT_X;YAML_DECLARE_STATIC;%(PreprocessorDefinitions);DEV_RELAY_SLIP;SLIP_PROTOCOL_NET</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>source;source\cpu;source\debugger;zlib;zip_lib;libyaml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -669,7 +631,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;YAML_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;YAML_DECLARE_STATIC;%(PreprocessorDefinitions);DEV_RELAY_SLIP;SLIP_PROTOCOL_NET</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>source;source\cpu;source\debugger;zlib;zip_lib;libyaml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -701,7 +663,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;YAML_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;YAML_DECLARE_STATIC;%(PreprocessorDefinitions);DEV_RELAY_SLIP;SLIP_PROTOCOL_NET</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>source;source\cpu;source\debugger;zlib;zip_lib;libyaml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -735,7 +697,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;NO_DIRECT_X;YAML_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;NO_DSHOW_STRSAFE;NO_DIRECT_X;YAML_DECLARE_STATIC;%(PreprocessorDefinitions);DEV_RELAY_SLIP;SLIP_PROTOCOL_NET</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>source;source\cpu;source\debugger;zlib;zip_lib;libyaml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>

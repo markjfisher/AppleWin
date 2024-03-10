@@ -102,7 +102,7 @@ void LoadConfiguration(bool loadImages)
 
 	///////////////////////////////////////////////////////////////
 	// SmartPort over SLIP
-	auto& listener = GetSPoverSLIPListener();
+	auto& listener = GetCommandListener();
 	DWORD dwRegStartListener = 0;
 	bool bStartListener = listener.default_start_listener;
 	TCHAR tcAddress[16];

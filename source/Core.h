@@ -4,7 +4,7 @@
 #include "Common.h"
 #include "StrFormat.h"
 #include "Log.h"
-#include "SPoverSLIP/Listener.h"
+#include "devrelay/service/Listener.h"
 
 void LogFileTimeUntilFirstKeyReadReset(void);
 void LogFileTimeUntilFirstKeyRead(void);
@@ -73,7 +73,7 @@ extern bool       g_bDisableDirectSoundMockingboard;	// Cmd line switch: don't i
 
 class Pravets& GetPravets(void);
 
-extern class Listener &GetSPoverSLIPListener(void);
+extern class Listener &GetCommandListener(void);
 
 //#define LOG_PERF_TIMINGS
 #ifdef LOG_PERF_TIMINGS

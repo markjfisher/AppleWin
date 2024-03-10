@@ -1054,7 +1054,7 @@ LRESULT Win32Frame::WndProc(
 
     case WM_DESTROY:
       LogFileOutput("WM_DESTROY\n");
-      GetSPoverSLIPListener().stop();
+      GetCommandListener().stop();
       DragAcceptFiles(window,0);
 	  if (!g_bRestart)	// GH#564: Only save-state on shutdown (not on a restart)
 		Snapshot_Shutdown();
