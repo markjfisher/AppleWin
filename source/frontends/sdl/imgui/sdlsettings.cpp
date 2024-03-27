@@ -645,6 +645,25 @@ namespace sa2
             }
 
             ///////////////////////////////////////////////////////
+            // NUMBER - Response Timeout
+            static char responseTimeout[6];
+            std::strncpy(responseTimeout, std::to_string(listener.get_response_timeout()).c_str(), sizeof(responseTimeout));
+            responseTimeout[sizeof(responseTimeout) - 1] = '\0';
+            if(ImGui::InputText("Response Timeout", responseTimeout, IM_ARRAYSIZE(responseTimeout), ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+              int old_response_timeout = listener.get_response_timeout();
+              int rto = std::stoi(std::string(responseTimeout));
+              if (rto > 65535 || rto <= 0) {
+               rto = listener.default_response_timeout;
+              }
+              if (rto != old_response_timeout) {
+                LogFileOutput("listener response timeout changed to %d\n", rto);
+                listener.set_response_timeout(rto);
+	              REGSAVE(TEXT(REGVALUE_SP_RESPONSE_TIMEOUT), rto);
+              }
+            }
+
+            ///////////////////////////////////////////////////////
             // BUTTONS - stop/start listener
             std::string restartText = "Restart Listener";
             const bool hideStart = listener.get_is_listening();
