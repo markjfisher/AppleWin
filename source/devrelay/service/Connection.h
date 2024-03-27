@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -23,8 +24,8 @@ public:
 	bool is_connected() const { return is_connected_; }
 	void set_is_connected(const bool is_connected) { is_connected_ = is_connected; }
 
-	std::vector<uint8_t> wait_for_response(uint8_t request_id, std::chrono::seconds timeout);
-	std::vector<uint8_t> wait_for_request();
+	std::optional<std::vector<uint8_t>> wait_for_response(uint8_t request_id, std::chrono::seconds timeout);
+	std::optional<std::vector<uint8_t>> wait_for_request();
 
 	void join();
 

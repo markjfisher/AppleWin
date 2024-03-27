@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include "Init.h"
 
 InitRequest::InitRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_INIT, device_id) {}
@@ -17,7 +18,8 @@ std::unique_ptr<Response> InitRequest::deserialize(const std::vector<uint8_t> &d
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize InitResponse");
+		std::cerr << "Not enough data to deserialize InitResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<InitResponse>(data[0], data[1]);

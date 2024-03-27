@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include "Reset.h"
 
 ResetRequest::ResetRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_RESET, device_id) {}
@@ -17,7 +18,8 @@ std::unique_ptr<Response> ResetRequest::deserialize(const std::vector<uint8_t> &
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize ResetResponse");
+		std::cerr << "Not enough data to deserialize ResetResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<ResetResponse>(data[0], data[1]);

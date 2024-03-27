@@ -18,6 +18,7 @@ class Listener
 private:
 	std::string ip_address_;
 	uint16_t port_;
+	uint16_t response_timeout_;
 	std::thread listening_thread_;
 
 	bool is_listening_;
@@ -44,7 +45,7 @@ public:
 	Listener();
 	~Listener();
 
-	void Initialize(std::string ip_address, const uint16_t port);
+	void Initialize(std::string ip_address, const uint16_t port, const uint16_t response_timeout);
 
 	void start();
 	void stop();
@@ -66,6 +67,7 @@ public:
 	bool default_start_listener = true;
 	std::string default_listener_address = "0.0.0.0";
 	uint16_t default_port = 1985;
+	uint16_t default_response_timeout = 10; // seconds
 
 	std::string get_ip_address() const { return ip_address_; }
 	std::string check_and_set_ip_address(const std::string &ip_address)
@@ -84,8 +86,13 @@ public:
 	uint16_t get_port() const { return port_; }
 	void set_port(uint16_t port) { port_ = port; }
 
+	uint16_t get_response_timeout() const { return response_timeout_; }
+	void set_response_timeout(uint16_t timeout) { response_timeout_ = timeout; }
+
 	void connection_closed(Connection *connection);
 	void add_connection_info(uint8_t key, const ConnectionInfo &info) { connection_info_map_[key] = info; }
 };
+
+extern class Listener &GetCommandListener(void);
 
 #endif

@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include "Format.h"
 
 FormatRequest::FormatRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_FORMAT, device_id) {}
@@ -17,7 +18,8 @@ std::unique_ptr<Response> FormatRequest::deserialize(const std::vector<uint8_t> 
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize FormatResponse");
+		std::cerr << "Not enough data to deserialize FormatResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<FormatResponse>(data[0], data[1]);

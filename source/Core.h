@@ -73,8 +73,6 @@ extern bool       g_bDisableDirectSoundMockingboard;	// Cmd line switch: don't i
 
 class Pravets& GetPravets(void);
 
-extern class Listener &GetCommandListener(void);
-
 //#define LOG_PERF_TIMINGS
 #ifdef LOG_PERF_TIMINGS
 class PerfMarker

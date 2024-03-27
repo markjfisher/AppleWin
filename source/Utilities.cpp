@@ -105,23 +105,29 @@ void LoadConfiguration(bool loadImages)
 	auto& listener = GetCommandListener();
 	DWORD dwRegStartListener = 0;
 	bool bStartListener = listener.default_start_listener;
+
 	TCHAR tcAddress[16];
 	strncpy(tcAddress, listener.default_listener_address.data(), 15);
 	tcAddress[15] = '\0'; // ensure it's null terminated in worst case 111.111.111.111
+
 	DWORD dwPort = static_cast<DWORD>(listener.default_port);
+	DWORD dwResponseTimeout = static_cast<DWORD>(listener.default_response_timeout);
+
 	if (REGLOAD(TEXT(REGVALUE_START_SP_SLIP_LISTENER), &dwRegStartListener))
 	{
 		bStartListener = dwRegStartListener ? true : false;
 		RegLoadString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, tcAddress, 16, listener.default_listener_address.c_str());
 		REGLOAD_DEFAULT(TEXT(REGVALUE_SP_LISTENER_PORT), &dwPort, listener.default_port);
+		REGLOAD_DEFAULT(TEXT(REGVALUE_SP_RESPONSE_TIMEOUT), &dwResponseTimeout, listener.default_response_timeout);
 	}
-  else
-  {
-    // Save defaults to registry if non exist, this cleans up some editing issues if there's no values already saved
-	  REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), 1);
-	  RegSaveString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, listener.default_listener_address);
-	  REGSAVE(TEXT(REGVALUE_SP_LISTENER_PORT), listener.default_port);
-  }
+	else
+	{
+		// Save defaults to registry if non exist, this cleans up some editing issues if there's no values already saved
+		REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), 1);
+		RegSaveString(TEXT(REG_CONFIG), TEXT(REGVALUE_SP_LISTENER_ADDRESS), 1, listener.default_listener_address);
+		REGSAVE(TEXT(REGVALUE_SP_LISTENER_PORT), listener.default_port);
+		REGSAVE(TEXT(REGVALUE_SP_RESPONSE_TIMEOUT), listener.default_response_timeout);
+	}
 
 	std::string listener_address(tcAddress);
 	listener_address = listener.check_and_set_ip_address(listener_address);
@@ -129,19 +135,26 @@ void LoadConfiguration(bool loadImages)
 	// check the input number wasn't too small or too large as DWORD is 4 bytes, port is only 2.
 	// Could be running as root (the horror) and get a port <1024
 	if (dwPort > 65535 || dwPort == 0) {
-		dwPort = 1985;
+		dwPort = listener.default_port;
 	}
 	uint16_t port = static_cast<uint16_t>(dwPort);
 
+	// check the response timeout is sane, should be 1 or greater.
+	if (dwResponseTimeout > 65535 || dwResponseTimeout == 0) {
+		dwResponseTimeout = listener.default_response_timeout;
+	}
+	uint16_t response_timeout = static_cast<uint16_t>(dwResponseTimeout);
+
 	if (bStartListener)
 	{
-		listener.Initialize(listener_address, port);
+		listener.Initialize(listener_address, port, response_timeout);
 		listener.start();
 	}
 
 	// Store the values so that if we open the preferences, we can fetch it to set the current state of the checkbox
 	listener.set_start_on_init(bStartListener);
 	listener.set_port(port);
+	listener.set_response_timeout(response_timeout);
 	///////////////////////////////////////////////////////////////
 
 	if (REGLOAD(TEXT(REGVALUE_APPLE2_TYPE), &dwComputerType))

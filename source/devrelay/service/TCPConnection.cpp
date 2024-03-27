@@ -27,8 +27,6 @@
 #include "../slip/SLIP.h"
 #include "Listener.h"
 
-extern class Listener &GetCommandListener(void);
-
 void TCPConnection::close_connection()
 {
 	if (socket_ != 0)
