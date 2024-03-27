@@ -307,7 +307,7 @@ BEGIN
             VALUE "FileDescription", "Apple //e Emulator for Windows"
             VALUE "FileVersion", APPLEWIN_VERSION_STR
             VALUE "InternalName", "APPLEWIN"
-            VALUE "LegalCopyright", " 1994-2023 Michael O'Brien, Oliver Schmidt, Tom Charlesworth, Michael Pohoreski, Nick Westgate, Linards Ticmanis"
+            VALUE "LegalCopyright", " 1994-2024 Michael O'Brien, Oliver Schmidt, Tom Charlesworth, Michael Pohoreski, Nick Westgate, Linards Ticmanis"
             VALUE "OriginalFilename", "APPLEWIN.EXE"
             VALUE "ProductName", "Apple //e Emulator"
             VALUE "ProductVersion", APPLEWIN_VERSION_STR
@@ -341,6 +341,7 @@ IDR_DISK2_13SECTOR_FW   FIRMWARE                "Disk2-13sector.rom"
 IDR_DISK2_16SECTOR_FW   FIRMWARE                "Disk2.rom"
 IDR_SSC_FW              FIRMWARE                "SSC.rom"
 IDR_HDDRVR_FW           FIRMWARE                "Hddrvr.bin"
+IDR_HDDRVR_V2_FW        FIRMWARE                "Hddrvr-v2.bin"
 IDR_PRINTDRVR_FW        FIRMWARE                "Parallel.rom"
 IDR_MOCKINGBOARD_D_FW   FIRMWARE                "Mockingboard-D.rom"
 IDR_MOUSEINTERFACE_FW   FIRMWARE                "MouseInterface.rom"

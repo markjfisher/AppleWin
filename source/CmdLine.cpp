@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SoundCore.h"
 #include "SNESMAX.h"
 #include "Interface.h"
+#include "Harddisk.h"
 
 CmdLine g_cmdLine;
 std::string g_sConfigFile; // INI file to use instead of Registry
@@ -156,6 +157,18 @@ bool ProcessCmdLine(LPSTR lpCmdLine)
 			lpNextArg = GetNextArg(lpNextArg);
 			g_cmdLine.szImageName_harddisk[SLOT7][HARDDISK_2] = lpCmdLine;
 		}
+		else if (strcmp(lpCmdLine, "-s0") == 0)	// Language Card options for Apple II/II+
+		{
+			lpCmdLine = GetCurrArg(lpNextArg);
+			lpNextArg = GetNextArg(lpNextArg);
+
+			if (strcmp(lpCmdLine, "saturn") == 0 || strcmp(lpCmdLine, "saturn128") == 0)
+				g_cmdLine.uSaturnBanks = Saturn128K::kMaxSaturnBanks;
+			else if (strcmp(lpCmdLine, "saturn64") == 0)
+				g_cmdLine.uSaturnBanks = Saturn128K::kMaxSaturnBanks / 2;
+			else if (strcmp(lpCmdLine, "languagecard") == 0 || strcmp(lpCmdLine, "lc") == 0)
+				g_cmdLine.bSlot0LanguageCard = true;
+		}
 		else if (lpCmdLine[0] == '-' && lpCmdLine[1] == 's' && lpCmdLine[2] >= '1' && lpCmdLine[2] <= '7')
 		{
 			const UINT slot = lpCmdLine[2] - '0';
@@ -175,6 +188,8 @@ bool ProcessCmdLine(LPSTR lpCmdLine)
 				}
 				if (strcmp(lpCmdLine, "hdc") == 0)
 					g_cmdLine.slotInsert[slot] = CT_GenericHDD;
+				if (strcmp(lpCmdLine, "saturn") == 0 || strcmp(lpCmdLine, "saturn128") == 0)	// Support Saturn128 card in slot 1-7 too (GH#1279)
+					g_cmdLine.slotInsert[slot] = CT_Saturn128K;
 				if (strcmp(lpCmdLine, "megaaudio") == 0)
 				{
 					g_cmdLine.slotInsert[slot] = CT_MegaAudio;
@@ -249,6 +264,21 @@ bool ProcessCmdLine(LPSTR lpCmdLine)
 			else
 			{
 				LogFileOutput("Unsupported arg: %s\n", lpCmdLine);
+			}
+		}
+		else if (strcmp(lpCmdLine, "-harddisknumblocks") == 0)		// number of blocks to report for ProDOS
+		{
+			lpCmdLine = GetCurrArg(lpNextArg);
+			lpNextArg = GetNextArg(lpNextArg);
+			g_cmdLine.uHarddiskNumBlocks = atoi(lpCmdLine);
+			if (g_cmdLine.uHarddiskNumBlocks > kHarddiskMaxNumBlocks)
+			{
+				g_cmdLine.uHarddiskNumBlocks = kHarddiskMaxNumBlocks;
+			}
+			else
+			{
+				if (g_cmdLine.uHarddiskNumBlocks < 0)
+					g_cmdLine.uHarddiskNumBlocks = 0;
 			}
 		}
 		else if (strcmp(lpCmdLine, "-load-state") == 0)
@@ -332,18 +362,6 @@ bool ProcessCmdLine(LPSTR lpCmdLine)
 				g_cmdLine.uRamWorksExPages = 1;
 		}
 #endif
-		else if (strcmp(lpCmdLine, "-s0") == 0)
-		{
-			lpCmdLine = GetCurrArg(lpNextArg);
-			lpNextArg = GetNextArg(lpNextArg);
-
-			if (strcmp(lpCmdLine, "saturn") == 0 || strcmp(lpCmdLine, "saturn128") == 0)
-				g_cmdLine.uSaturnBanks = Saturn128K::kMaxSaturnBanks;
-			else if (strcmp(lpCmdLine, "saturn64") == 0)
-				g_cmdLine.uSaturnBanks = Saturn128K::kMaxSaturnBanks/2;
-			else if (strcmp(lpCmdLine, "languagecard") == 0 || strcmp(lpCmdLine, "lc") == 0)
-				g_cmdLine.bSlot0LanguageCard = true;
-		}
 		else if (strcmp(lpCmdLine, "-f8rom") == 0)		// Use custom 2K ROM at [$F800..$FFFF]
 		{
 			lpCmdLine = GetCurrArg(lpNextArg);
@@ -618,13 +636,15 @@ bool ProcessCmdLine(LPSTR lpCmdLine)
 		}
 		else if (strcmp(lpCmdLine, "-mb-audit") == 0)	// enable selection of additional sound cards, eg. for mb-audit
 		{
-			lpCmdLine = GetCurrArg(lpNextArg);
-			lpNextArg = GetNextArg(lpNextArg);
 			g_cmdLine.supportExtraMBCardTypes = true;
 		}
-		else if (strcmp(lpCmdLine, "-no-disk2-stepper-defer") == 0)	// a debug switch (likely to be removed in a future version)
+		else if (strcmp(lpCmdLine, "-no-disk2-stepper-defer") == 0)	// a debug switch added at 1.30.11 / GH#1110 (likely to be removed in a future version)
 		{
 			g_cmdLine.noDisk2StepperDefer = true;
+		}
+		else if (strcmp(lpCmdLine, "-hdc-firmware-v1") == 0)	// a debug switch added at 1.30.18 / GH#1277 (likely to be removed in a future version)
+		{
+			g_cmdLine.useHdcFirmwareV1 = true;
 		}
 		else	// unsupported
 		{

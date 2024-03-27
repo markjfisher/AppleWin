@@ -34,8 +34,10 @@ struct CmdLine
 		enableDumpToRealPrinter = false;
 		supportExtraMBCardTypes = false;
 		noDisk2StepperDefer = false;
+		useHdcFirmwareV1 = false;
 		szSnapshotName = NULL;
 		szScreenshotFilename = NULL;
+		uHarddiskNumBlocks = 0;
 		uRamWorksExPages = 0;
 		uSaturnBanks = 0;
 		newVideoType = -1;
@@ -77,11 +79,13 @@ struct CmdLine
 	bool enableDumpToRealPrinter;
 	bool supportExtraMBCardTypes;
 	bool noDisk2StepperDefer;	// debug
+	bool useHdcFirmwareV1;	// debug
 	SS_CARDTYPE slotInsert[NUM_SLOTS];
 	SlotInfo slotInfo[NUM_SLOTS];
 	LPCSTR szImageName_drive[NUM_SLOTS][NUM_DRIVES];
 	bool driveConnected[NUM_SLOTS][NUM_DRIVES];
 	LPCSTR szImageName_harddisk[NUM_SLOTS][NUM_HARDDISKS];
+	UINT uHarddiskNumBlocks;
 	LPSTR szSnapshotName;
 	LPSTR szScreenshotFilename;
 	UINT uRamWorksExPages;

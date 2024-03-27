@@ -1,6 +1,9 @@
 #pragma once
 
 #include "frontends/libretro/rkeyboard.h"
+#include "frontends/libretro/rdirectsound.h"
+#include "frontends/libretro/diskcontrol.h"
+
 #include <memory>
 
 class Registry;
@@ -17,6 +20,8 @@ namespace ra2
   std::shared_ptr<common2::PTreeRegistry> CreateRetroRegistry();
   void PopulateRegistry(const std::shared_ptr<Registry> & registry);
 
-  size_t GetAudioOutputChannels();
+  AudioSource GetAudioSource();
   KeyboardType GetKeyboardEmulationType();
+  PlaylistStartDisk GetPlaylistStartDisk();
+
 }

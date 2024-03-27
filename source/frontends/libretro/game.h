@@ -1,9 +1,10 @@
 #pragma once
 
-#include "frontends/common2/controllerquit.h"
+#include "frontends/common2/controllerdoublepress.h"
 #include "frontends/libretro/environment.h"
 #include "frontends/libretro/diskcontrol.h"
 #include "frontends/libretro/rkeyboard.h"
+#include "frontends/libretro/rdirectsound.h"
 
 #include <memory>
 #include <chrono>
@@ -26,7 +27,7 @@ namespace ra2
   class Game
   {
   public:
-    Game();
+    Game(const bool supportsInputBitmasks);
     ~Game();
 
     bool loadSnapshot(const std::string & path);
@@ -51,19 +52,19 @@ namespace ra2
     static constexpr retro_usec_t ourFrameTime = 1000000 / FPS;
 
   private:
+    const bool mySupportsInputBitmasks;
+    size_t myButtonStates;
+    AudioSource myAudioSource;
+    KeyboardType myKeyboardType;
+
     // keep them in this order!
     std::shared_ptr<LoggerContext> myLoggerContext;
     std::shared_ptr<common2::PTreeRegistry> myRegistry;
     std::shared_ptr<RegistryContext> myRegistryContext;
     std::shared_ptr<RetroFrame> myFrame;
 
-    common2::ControllerQuit myControllerQuit;
-
-    std::vector<int> myButtonStates;
-
-    size_t myAudioChannelsSelected;
-
-    KeyboardType myKeyboardType;
+    common2::ControllerDoublePress myControllerQuit;
+    common2::ControllerDoublePress myControllerReset;
 
     struct MousePosition_t
     {
@@ -76,7 +77,7 @@ namespace ra2
 
     DiskControl myDiskControl;
 
-    bool checkButtonPressed(unsigned id);
+    size_t updateButtonStates();
     void keyboardEmulation();
     void mouseEmulation();
     void refreshVariables();

@@ -259,6 +259,7 @@ namespace sa2
         {
           return; // do not pass on
         }
+        break;
       }
     case SDL_MOUSEBUTTONDOWN:
     case SDL_MOUSEBUTTONUP:
@@ -269,10 +270,52 @@ namespace sa2
         {
           return; // do not pass on
         }
+        break;
       }
     }
 
     SDLFrame::ProcessSingleEvent(event, quit);
+  }
+
+  void SDLImGuiFrame::ProcessKeyDown(const SDL_KeyboardEvent & key, bool &quit)
+  {
+    // a bit of care is required
+    // since we do not want to trigger twice (here and SDLFrame)
+    // we need to ensure the modifiers are consistent
+    if (!key.repeat)
+    {
+      const size_t modifiers = getCanonicalModifiers(key);
+
+      switch (key.keysym.sym)
+      {
+      case SDLK_F8:
+        {
+          if (modifiers == KMOD_NONE)
+          {
+            mySettings.toggleSettings();
+          }
+          break;
+        }
+      case SDLK_F3:
+        {
+          if (modifiers == KMOD_NONE)
+          {
+            mySettings.showDiskTab();
+          }
+          break;
+        }
+      case SDLK_F1:
+        {
+          if (modifiers == KMOD_NONE)
+          {
+            mySettings.toggleShortcuts();
+          }
+          break;
+        }
+      }
+    }
+
+    SDLFrame::ProcessKeyDown(key, quit);
   }
 
   bool SDLImGuiFrame::Quit() const

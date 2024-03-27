@@ -1,7 +1,7 @@
 #pragma once
 
 #include "frontends/common2/gnuframe.h"
-#include "frontends/common2/controllerquit.h"
+#include "frontends/common2/controllerdoublepress.h"
 #include "frontends/common2/programoptions.h"
 #include "linux/network/portfwds.h"
 #include <SDL.h>
@@ -37,6 +37,8 @@ namespace sa2
 
     const common2::Speed & getSpeed() const;
 
+    void SaveSnapshot();
+
     static void setGLSwapInterval(const int interval);
 
   protected:
@@ -45,8 +47,8 @@ namespace sa2
 
     virtual void ProcessSingleEvent(const SDL_Event & event, bool & quit);
     virtual void GetRelativeMousePosition(const SDL_MouseMotionEvent & motion, double & x, double & y) const = 0;
+    virtual void ProcessKeyDown(const SDL_KeyboardEvent & key, bool &quit);
 
-    void ProcessKeyDown(const SDL_KeyboardEvent & key, bool &quit);
     void ProcessKeyUp(const SDL_KeyboardEvent & key);
     void ProcessText(const SDL_TextInputEvent & text);
     void ProcessDropEvent(const SDL_DropEvent & drop);
@@ -75,7 +77,7 @@ namespace sa2
 
     std::shared_ptr<SDL_Window> myWindow;
 
-    common2::ControllerQuit myControllerQuit;
+    common2::ControllerDoublePress myControllerQuit;
   };
 
 }

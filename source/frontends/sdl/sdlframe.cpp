@@ -424,38 +424,40 @@ namespace sa2
     // if the user has decided to change the layout, we just go with it and use the keycode
     if (!key.repeat)
     {
+      const size_t modifiers = getCanonicalModifiers(key);
       switch (key.keysym.sym)
       {
       case SDLK_F12:
         {
-          LoadSnapshot();
+          if (modifiers == KMOD_NONE)
+          {
+            LoadSnapshot();
+          }
           break;
         }
       case SDLK_F11:
         {
-          const std::string & pathname = Snapshot_GetPathname();
-          const std::string message = "Do you want to save the state to: " + pathname + "?";
-          SoundCore_SetFade(FADE_OUT);
-          if (show_yes_no_dialog(myWindow, "Save state", message))
+          if (modifiers == KMOD_NONE)
           {
-            Snapshot_SaveState();
+            SaveSnapshot();
           }
-          SoundCore_SetFade(FADE_IN);
-          ResetSpeed();
           break;
         }
       case SDLK_F9:
         {
-          CycleVideoType();
+          if (modifiers == KMOD_NONE)
+          {
+            CycleVideoType();
+          }
           break;
         }
       case SDLK_F6:
         {
-          if ((key.keysym.mod & KMOD_CTRL) && (key.keysym.mod & KMOD_SHIFT))
+          if (modifiers == (KMOD_CTRL | KMOD_SHIFT))
           {
             Cycle50ScanLines();
           }
-          else if (key.keysym.mod & KMOD_CTRL)
+          else if (modifiers == KMOD_CTRL)
           {
             Video & video = GetVideo();
             myMultiplier = myMultiplier == 1 ? 2 : 1;
@@ -463,7 +465,7 @@ namespace sa2
             const int sh = video.GetFrameBufferBorderlessHeight();
             SDL_SetWindowSize(myWindow.get(), sw * myMultiplier, sh * myMultiplier);
           }
-          else if (!(key.keysym.mod & KMOD_SHIFT))
+          else if (modifiers == KMOD_NONE)
           {
             myFullscreen = !myFullscreen;
             SDL_SetWindowFullscreen(myWindow.get(), myFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -472,29 +474,38 @@ namespace sa2
         }
       case SDLK_F5:
         {
-          CardManager & cardManager = GetCardMgr();
-          if (cardManager.QuerySlot(SLOT6) == CT_Disk2)
+          if (modifiers == KMOD_NONE)
           {
-            dynamic_cast<Disk2InterfaceCard*>(cardManager.GetObj(SLOT6))->DriveSwap();
+            CardManager & cardManager = GetCardMgr();
+            if (cardManager.QuerySlot(SLOT6) == CT_Disk2)
+            {
+              dynamic_cast<Disk2InterfaceCard*>(cardManager.GetObj(SLOT6))->DriveSwap();
+            }
           }
           break;
         }
-      case SDLK_F3:
-      {
-        quit = true;
-        break;
-      }
+      case SDLK_F4:
+        {
+          if (modifiers == KMOD_ALT)
+          {
+            // In GNOME (and probably most Desktop Environments)
+            // we never get here: we receive instead a SDL_QUIT
+            // this is only a fallback for "other" environments
+            quit = true;
+          }
+          break;
+        }
       case SDLK_F2:
         {
-          if (key.keysym.mod & KMOD_CTRL)
+          if (modifiers == KMOD_CTRL)
           {
             CtrlReset();
           }
-          else if (key.keysym.mod & KMOD_SHIFT)
+          else if (modifiers == KMOD_SHIFT)
           {
             quit = true;
           }
-          else
+          else if (modifiers == KMOD_NONE)
           {
             FrameResetMachineState();
           }
@@ -502,7 +513,10 @@ namespace sa2
         }
       case SDLK_F1:
         {
-          sa2::printAudioInfo();
+          if (modifiers == KMOD_CTRL)
+          {
+            sa2::printAudioInfo();
+          }
           break;
         }
       case SDLK_LALT:
@@ -528,7 +542,11 @@ namespace sa2
         }
       case SDLK_INSERT:
         {
-          if (key.keysym.mod & KMOD_SHIFT)
+          if (modifiers == (KMOD_CTRL | KMOD_SHIFT))
+          {
+            Video_TakeScreenShot(Video::SCREENSHOT_560x384);
+          }
+          else if (modifiers ==  KMOD_SHIFT)
           {
             char * text = SDL_GetClipboardText();
             if (text)
@@ -537,7 +555,7 @@ namespace sa2
               SDL_free(text);
             }
           }
-          else if (key.keysym.mod & KMOD_CTRL)
+          else if (modifiers == KMOD_CTRL)
           {
             // in AppleWin this is Ctrl-PrintScreen
             // but PrintScreen is not passed to SDL
@@ -547,10 +565,6 @@ namespace sa2
             {
               SDL_SetClipboardText(pText);
             }
-          }
-          else if (key.keysym.mod & KMOD_ALT)
-          {
-            Video_TakeScreenShot(Video::SCREENSHOT_560x384);
           }
           break;
         }
@@ -682,6 +696,19 @@ namespace sa2
   const common2::Speed & SDLFrame::getSpeed() const
   {
     return mySpeed;
+  }
+
+  void SDLFrame::SaveSnapshot()
+  {
+    const std::string & pathname = Snapshot_GetPathname();
+    const std::string message = "Do you want to save the state to: " + pathname + "?";
+    SoundCore_SetFade(FADE_OUT);
+    if (show_yes_no_dialog(myWindow, "Save state", message))
+    {
+      Snapshot_SaveState();
+    }
+    SoundCore_SetFade(FADE_IN);
+    ResetSpeed();
   }
 
 }

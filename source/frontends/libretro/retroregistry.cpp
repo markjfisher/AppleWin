@@ -1,7 +1,7 @@
 #include "StdAfx.h"
+#include "frontends/libretro/retroregistry.h"
 #include "frontends/common2/ptreeregistry.h"
 #include "frontends/libretro/environment.h"
-#include "frontends/libretro/retroregistry.h"
 
 #include "Common.h"
 #include "Card.h"
@@ -10,18 +10,17 @@
 #include "libretro.h"
 
 #include <list>
-#include <vector>
 #include <sstream>
 
 namespace
 {
 
   const std::string ourScope = "applewin_";
-  const char * REG_AUDIO_OUTPUT = "ra2\\audio";
-  const char * REGVALUE_AUDIO_OUTPUT_CHANNELS = "Number of Channels";
 
-  const char * REG_KEYBOARD_TYPE = "ra2\\keyboard";
-  const char * REGVALUE_KEYBOARD_TYPE = "Keyboard Type";
+  const char * REG_RA2 = "ra2";
+  const char * REGVALUE_AUDIO_SOURCE = "Audio source";
+  const char * REGVALUE_KEYBOARD_TYPE = "Keyboard type";
+  const char * REGVALUE_PLAYLIST_START = "Playlist start";
 
   struct Variable
   {
@@ -124,23 +123,33 @@ namespace
       }
      },
      {
-      "audio_output",
-      "Audio Output",
-      REG_AUDIO_OUTPUT,
-      REGVALUE_AUDIO_OUTPUT_CHANNELS,
+      "audio_source",
+      "Audio Source",
+      REG_RA2,
+      REGVALUE_AUDIO_SOURCE,
       {
-       {"Speaker", 1},
-       {"Mockingboard", 2},
+       {REGVALUE_AUDIO_SPEAKER, static_cast<DWORD>(ra2::AudioSource::SPEAKER)},
+       {REGVALUE_AUDIO_MOCKINGBOARD, static_cast<DWORD>(ra2::AudioSource::MOCKINGBOARD)},
       }
      },
      {
       "keyboard_type",
       "Keyboard Type",
-      REG_KEYBOARD_TYPE,
+      REG_RA2,
       REGVALUE_KEYBOARD_TYPE,
       {
        {"ASCII", static_cast<DWORD>(ra2::KeyboardType::ASCII)},
        {"Original", static_cast<DWORD>(ra2::KeyboardType::Original)},
+      }
+     },
+     {
+      "playlist_start",
+      "Playlist start disk",
+      REG_RA2,
+      REGVALUE_PLAYLIST_START,
+      {
+       {"First", static_cast<DWORD>(ra2::PlaylistStartDisk::First)},
+       {"Previous", static_cast<DWORD>(ra2::PlaylistStartDisk::Previous)},
       }
      },
     };
@@ -221,17 +230,26 @@ namespace ra2
     return registry;
   }
 
-  size_t GetAudioOutputChannels()
+  AudioSource GetAudioSource()
   {
     DWORD value = 1;
-    RegLoadValue(REG_AUDIO_OUTPUT, REGVALUE_AUDIO_OUTPUT_CHANNELS, TRUE, &value);
-    return value;
+    RegLoadValue(REG_RA2, REGVALUE_AUDIO_SOURCE, TRUE, &value);
+    const AudioSource source = value <= DWORD(AudioSource::UNKNOWN) ? AudioSource(value) : AudioSource::UNKNOWN;
+    return source;
   }
 
   KeyboardType GetKeyboardEmulationType()
   {
     DWORD value = static_cast<DWORD>(KeyboardType::ASCII);
-    RegLoadValue(REG_KEYBOARD_TYPE, REGVALUE_KEYBOARD_TYPE, TRUE, &value);
+    RegLoadValue(REG_RA2, REGVALUE_KEYBOARD_TYPE, TRUE, &value);
     return static_cast<KeyboardType>(value);
   }
+
+  PlaylistStartDisk GetPlaylistStartDisk()
+  {
+    DWORD value = static_cast<DWORD>(PlaylistStartDisk::First);
+    RegLoadValue(REG_RA2, REGVALUE_PLAYLIST_START, TRUE, &value);
+    return static_cast<PlaylistStartDisk>(value);
+  }
+
 }

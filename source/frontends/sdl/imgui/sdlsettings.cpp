@@ -25,6 +25,28 @@
 namespace
 {
 
+  const char * ourShortcutHeaders[6] = {
+    "Key", "Normal", "Control", "Shift", "Both", "Alt",
+  };
+
+  const char * ourShortcutKeys[][6] = {
+    {"Left ALT", "Open Apple"},
+    {"Right ALT", "Solid Apple"},
+    {"Pause", "Pause"},
+    {"Insert", nullptr, "Copy", "Paste", "Screenshot"},
+    {"Scroll lock", "Full speed"},
+    {"F1", "Shortcuts", "Print audio info"},
+    {"F2", "Reset", "Ctrl-Reset", "Quit"},
+    {"F3", "Disks"},
+    {"F4", nullptr, nullptr, nullptr, nullptr, "Quit"},
+    {"F5", "Swap S6 disks"},
+    {"F6", "Fullscreen", "2x", nullptr, "50 scan lines"},
+    {"F8", "Settings"},
+    {"F9", "Cycle video type"},
+    {"F11", "Save snapshot"},
+    {"F12", "Load snapshot"},
+  };
+
   struct MemoryTab
   {
     void * basePtr;
@@ -58,6 +80,11 @@ namespace
 
 namespace sa2
 {
+  ImGuiSettings::ImGuiSettings()
+    : mySaveFileDialog(ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir)
+  {
+
+  }
 
   void ImGuiSettings::showSettings(SDLFrame* frame)
   {
@@ -82,13 +109,32 @@ namespace sa2
             myDebugger.syncDebuggerState(frame);
           }
           ImGui::SameLine(); HelpMarker("Show Apple CPU.");
-
-          ImGui::Checkbox("Show Demo", &myShowDemo);
-          ImGui::SameLine(); HelpMarker("Show Dear ImGui DemoWindow.");
-
           ImGui::Separator();
 
-          ImGui::LabelText("Save state", "%s", Snapshot_GetPathname().c_str());
+          const std::string& snapshotPathname = Snapshot_GetPathname();
+          if (ImGui::Button(snapshotPathname.c_str()))
+          {
+            openFileDialog(mySaveFileDialog, snapshotPathname);
+          }
+
+          mySaveFileDialog.Display();
+          if (mySaveFileDialog.HasSelected())
+          {
+              Snapshot_SetFilename(mySaveFileDialog.GetSelected().string());
+              RegSaveString(TEXT(REG_CONFIG), TEXT(REGVALUE_SAVESTATE_FILENAME), 1, Snapshot_GetPathname());
+              mySaveFileDialog.ClearSelected();
+          }
+
+          ImGui::SameLine();
+          if (ImGui::Button("Save F11"))
+          {
+            frame->SaveSnapshot();
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Load F12"))
+          {
+            frame->LoadSnapshot();
+          }
           ImGui::Separator();
 
           if (frame->HardwareChanged())
@@ -247,7 +293,9 @@ namespace sa2
           ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("Disks"))
+        const ImGuiTabItemFlags disksFlags = myShowDiskTab ? ImGuiTabItemFlags_SetSelected : 0;
+        myShowDiskTab = false;  // only do it once
+        if (ImGui::BeginTabItem("Disks", nullptr, disksFlags))
         {
           bool enhancedSpeed = cardManager.GetDisk2CardMgr().GetEnhanceDisk();
           if (ImGui::Checkbox("Enhanced speed", &enhancedSpeed))
@@ -271,9 +319,9 @@ namespace sa2
             ImGui::TableSetupColumn("Track", ImGuiTableColumnFlags_WidthFixed);
             ImGui::TableSetupColumn("Phase", ImGuiTableColumnFlags_WidthFixed);
             ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("D&D", ImGuiTableColumnFlags_WidthFixed);
             ImGui::TableSetupColumn("Eject", ImGuiTableColumnFlags_WidthFixed);
             ImGui::TableSetupColumn("Swap", ImGuiTableColumnFlags_WidthFixed);
-            ImGui::TableSetupColumn("D&D", ImGuiTableColumnFlags_WidthFixed);
             ImGui::TableSetupColumn("Open", ImGuiTableColumnFlags_WidthFixed);
             ImGui::TableSetupColumn("Filename", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableHeadersRow();
@@ -317,6 +365,12 @@ namespace sa2
                   ImGui::TextUnformatted(getDiskStatusName(statuses[drive]).c_str());
 
                   ImGui::TableNextColumn();
+                  if (ImGui::RadioButton("##Sel", (dragAndDropSlot == slot) && (dragAndDropDrive == drive)))
+                  {
+                    frame->setDragDropSlotAndDrive(slot, drive);
+                  }
+
+                  ImGui::TableNextColumn();
                   if (ImGui::SmallButton("Eject"))
                   {
                     card2->EjectDisk(drive);
@@ -329,16 +383,10 @@ namespace sa2
                   }
 
                   ImGui::TableNextColumn();
-                  if (ImGui::RadioButton("##Sel", (dragAndDropSlot == slot) && (dragAndDropDrive == drive)))
-                  {
-                    frame->setDragDropSlotAndDrive(slot, drive);
-                  }
-
-                  ImGui::TableNextColumn();
                   if (ImGui::SmallButton("Open"))
                   {
                     const std::string & diskName = card2->DiskGetFullPathName(drive);
-                    openFileDialog(diskName, slot, drive);
+                    openDiskFileDialog(myDiskFileDialog, diskName, slot, drive);
                   }
 
                   ImGui::TableNextColumn();
@@ -370,6 +418,12 @@ namespace sa2
                   ImGui::TextUnformatted(getDiskStatusName(disk1Status_).c_str());
 
                   ImGui::TableNextColumn();
+                  if (ImGui::RadioButton("##Sel", (dragAndDropSlot == slot) && (dragAndDropDrive == drive)))
+                  {
+                    frame->setDragDropSlotAndDrive(slot, drive);
+                  }
+
+                  ImGui::TableNextColumn();
                   if (ImGui::SmallButton("Eject"))
                   {
                     pHarddiskCard->Unplug(drive);
@@ -382,16 +436,10 @@ namespace sa2
                   }
 
                   ImGui::TableNextColumn();
-                  if (ImGui::RadioButton("##Sel", (dragAndDropSlot == slot) && (dragAndDropDrive == drive)))
-                  {
-                    frame->setDragDropSlotAndDrive(slot, drive);
-                  }
-
-                  ImGui::TableNextColumn();
                   if (ImGui::SmallButton("Open"))
                   {
                     const std::string & diskName = pHarddiskCard->HarddiskGetFullPathName(drive);
-                    openFileDialog(diskName, slot, drive);
+                    openDiskFileDialog(myDiskFileDialog, diskName, slot, drive);
                   }
 
                   ImGui::TableNextColumn();
@@ -404,11 +452,11 @@ namespace sa2
             }
             ImGui::EndTable();
 
-            myFileDialog.Display();
-            if (myFileDialog.HasSelected())
+            myDiskFileDialog.Display();
+            if (myDiskFileDialog.HasSelected())
             {
-              sa2::processFile(frame, myFileDialog.GetSelected().string().c_str(), myOpenSlot, myOpenDrive);
-              myFileDialog.ClearSelected();
+              sa2::processFile(frame, myDiskFileDialog.GetSelected().string().c_str(), myOpenSlot, myOpenDrive);
+              myDiskFileDialog.ClearSelected();
             }
 
           }
@@ -470,9 +518,10 @@ namespace sa2
 
           ImGui::Separator();
 
-          if (ImGui::BeginTable("Devices", 5, ImGuiTableFlags_RowBg))
+          if (ImGui::BeginTable("Devices", 6, ImGuiTableFlags_RowBg))
           {
             myAudioInfo = getAudioInfo();
+            ImGui::TableSetupColumn("Name");
             ImGui::TableSetupColumn("Running");
             ImGui::TableSetupColumn("Channels");
             ImGui::TableSetupColumn("Volume");
@@ -483,6 +532,8 @@ namespace sa2
             ImGui::BeginDisabled();
             for (SoundInfo & device : myAudioInfo)
             {
+              ImGui::TableNextColumn();
+              ImGui::TextUnformatted(device.name.c_str());
               ImGui::TableNextColumn();
               ImGui::Checkbox("##Running", &device.running);
               ImGui::TableNextColumn();
@@ -798,6 +849,40 @@ namespace sa2
     ImGui::End();
   }
 
+  void ImGuiSettings::showShortcutWindow()
+  {
+    if (ImGui::Begin("Shortcuts", &myShowShortcuts))
+    {
+      // ImGui::TextUnformatted("Available shortcuts");
+      if (ImGui::BeginTable("Shortcuts", std::size(ourShortcutHeaders), ImGuiTableFlags_RowBg))
+      {
+        for (const auto & col : ourShortcutHeaders)
+        {
+          ImGui::TableSetupColumn(col);
+        }
+        ImGui::TableHeadersRow();
+
+        for (const auto & row : ourShortcutKeys)
+        {
+          ImGui::TableNextRow();
+          for (const auto & col : row)
+          {
+            ImGui::TableNextColumn();
+            if (col)
+            {
+              ImGui::TextUnformatted(col);
+            }
+          }
+        }
+        ImGui::EndTable();
+        ImGui::Separator();
+        ImGui::TextUnformatted("Press the Gamepad BACK button twice to quit.");
+      }
+    }
+
+    ImGui::End();
+  }
+
   void ImGuiSettings::show(SDLFrame * frame, ImFont * debuggerFont)
   {
     if (myShowSettings)
@@ -822,6 +907,11 @@ namespace sa2
       showAboutWindow();
     }
 
+    if (myShowShortcuts)
+    {
+      showShortcutWindow();
+    }
+
     if (myShowDemo)
     {
       ImGui::ShowDemoWindow(&myShowDemo);
@@ -837,20 +927,21 @@ namespace sa2
       menuBarHeight = ImGui::GetWindowHeight();
       if (ImGui::BeginMenu("System"))
       {
-        ImGui::MenuItem("Settings", nullptr, &myShowSettings);
+        ImGui::MenuItem("Settings", "F8", &myShowSettings);
         ImGui::MenuItem("Memory", nullptr, &myShowMemory);
         if (ImGui::MenuItem("Debugger", nullptr, &myDebugger.showDebugger))
         {
           myDebugger.syncDebuggerState(frame);
         }
         ImGui::Separator();
-        ImGui::MenuItem("Exit", "F3", &quit);
+        ImGui::MenuItem("Quit", "Alt-F4", &quit);
         ImGui::EndMenu();
       }
 
       if (ImGui::BeginMenu("Help"))
       {
-        ImGui::MenuItem("Demo", nullptr, &myShowDemo);
+        ImGui::MenuItem("Shortcuts", "F1", &myShowShortcuts);
+        ImGui::MenuItem("ImGui Demo", nullptr, &myShowDemo);
         ImGui::Separator();
         ImGui::MenuItem("About", nullptr, &myShowAbout);
         ImGui::EndMenu();
@@ -907,16 +998,37 @@ namespace sa2
     myDebugger.resetDebuggerCycles();
   }
 
-  void ImGuiSettings::openFileDialog(const std::string & diskName, const size_t slot, const size_t drive)
+  void ImGuiSettings::openFileDialog(ImGui::FileBrowser & browser, const std::string & filename)
   {
-    if (!diskName.empty())
+    if (!filename.empty())
     {
-      const std::filesystem::path path(diskName);
-      myFileDialog.SetPwd(path.parent_path());
+      const std::filesystem::path path(filename);
+      browser.SetPwd(path.parent_path());
     }
-    myFileDialog.Open();
+    browser.Open();
+  }
+
+  void ImGuiSettings::openDiskFileDialog(ImGui::FileBrowser & browser, const std::string & diskName, const size_t slot, const size_t drive)
+  {
+    openFileDialog(browser, diskName);
     myOpenSlot = slot;
     myOpenDrive = drive;
+  }
+
+  void ImGuiSettings::showDiskTab()
+  {
+    myShowSettings = true;
+    myShowDiskTab = true;
+  }
+
+  void ImGuiSettings::toggleSettings()
+  {
+    myShowSettings = !myShowSettings;
+  }
+
+  void ImGuiSettings::toggleShortcuts()
+  {
+    myShowShortcuts = !myShowShortcuts;
   }
 
 }
