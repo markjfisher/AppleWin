@@ -17,7 +17,7 @@ std::unique_ptr<Response> Requestor::send_request(const Request &request, Connec
 	std::optional<std::vector<uint8_t>> response_data = connection->wait_for_response(request.get_request_sequence_number(), std::chrono::seconds(GetCommandListener().get_response_timeout()));
 	if (!response_data)
 	{
-		std::cerr << "Requestor::send_request Timeout waiting for response" << std::endl;
+		std::cerr << "Requestor::send_request timeout waiting for response" << std::endl;
 		return nullptr;
 	}
 
