@@ -120,19 +120,21 @@ void CardManager::InsertInternal(UINT slot, SS_CARDTYPE type)
 		m_slot[slot] = new SmartPortOverSlip(slot);
 		break;
 	case CT_LanguageCard:
-		_ASSERT(m_pLanguageCard == NULL);
-		if (m_pLanguageCard) break;	// Only support one language card
-		m_slot[slot] = m_pLanguageCard = LanguageCardSlot0::create(slot);
+	case CT_LanguageCardIIe:
+		_ASSERT(slot == SLOT0);
+		if (GetLanguageCardMgr().SetLanguageCard(type))
+			m_slot[SLOT0] = GetLanguageCardMgr().GetLanguageCard();
 		break;
 	case CT_Saturn128K:
-		_ASSERT(m_pLanguageCard == NULL);
-		if (m_pLanguageCard) break;	// Only support one language card
-		m_slot[slot] = m_pLanguageCard = new Saturn128K(slot, Saturn128K::GetSaturnMemorySize());
-		break;
-	case CT_LanguageCardIIe:
-		_ASSERT(m_pLanguageCard == NULL);
-		if (m_pLanguageCard) break;	// Only support one language card
-		m_slot[slot] = m_pLanguageCard = LanguageCardUnit::create(slot);
+		if (slot == SLOT0)
+		{
+			if (GetLanguageCardMgr().SetLanguageCard(type))
+				m_slot[SLOT0] = GetLanguageCardMgr().GetLanguageCard();
+		}
+		else
+		{
+			m_slot[slot] = new Saturn128K(slot, Saturn128K::kMaxSaturnBanks);
+		}
 		break;
 
 	default:
@@ -168,9 +170,13 @@ void CardManager::RemoveInternal(UINT slot)
 			m_pParallelPrinterCard = NULL;
 			break;
 		case CT_LanguageCard:
-		case CT_Saturn128K:
 		case CT_LanguageCardIIe:
-			m_pLanguageCard = NULL;
+			_ASSERT(slot == SLOT0);
+			GetLanguageCardMgr().SetLanguageCard(CT_Empty);
+			break;
+		case CT_Saturn128K:
+			if (slot == SLOT0)
+				GetLanguageCardMgr().SetLanguageCard(CT_Empty);
 			break;
 		case CT_Z80:
 			m_pZ80Card = NULL;
