@@ -156,7 +156,9 @@ INT_PTR CPageAdvanced::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, L
 			CheckDlgButton(hWnd, IDC_SPOSLIP_ENABLE_LISTENER, listener.get_start_on_init() ? BST_CHECKED : BST_UNCHECKED);
 			SendDlgItemMessage(hWnd, IDC_SPOSLIP_ADDRESS, WM_SETTEXT, 0, (LPARAM) listener.get_ip_address().c_str());
 			std::string port_string = std::to_string(listener.get_port());
+			std::string request_timeout = std::to_string(listener.get_response_timeout());
 			SendDlgItemMessage(hWnd, IDC_SPOSLIP_PORT, WM_SETTEXT, 0, (LPARAM) port_string.c_str());
+			SendDlgItemMessage(hWnd, IDC_SPOSLIP_RESPONSE_TIMEOUT, WM_SETTEXT, 0, (LPARAM) request_timeout.c_str());
 
 			if (GetCardMgr().IsParallelPrinterCardInstalled())
 			{
@@ -208,6 +210,7 @@ void CPageAdvanced::DlgOK(HWND hWnd)
 	auto& listener = GetCommandListener();
 	auto current_ip = listener.get_ip_address();
 	auto current_port = listener.get_port();
+	auto current_response_timeout = listener.get_response_timeout();
 
 	bool startSPListenerOnStartup = IsDlgButtonChecked(hWnd, IDC_SPOSLIP_ENABLE_LISTENER) ? true : false;
 	listener.set_start_on_init(startSPListenerOnStartup);
@@ -223,20 +226,27 @@ void CPageAdvanced::DlgOK(HWND hWnd)
 	std::string port_string = std::to_string(listener_port);
 	SendDlgItemMessage(hWnd, IDC_SPOSLIP_PORT, WM_SETTEXT, 0, (LPARAM)port_string.c_str());
 
+	int listener_response_timeout = GetDialogNumber(hWnd, IDC_SPOSLIP_RESPONSE_TIMEOUT, 6);
+	if (listener_response_timeout > 65535 || listener_response_timeout <= 0) listener_response_timeout = listener.default_response_timeout;
+	listener.set_response_timeout(static_cast<uint16_t>(listener_response_timeout));
+	std::string response_timeout_string = std::to_string(listener_response_timeout);
+	SendDlgItemMessage(hWnd, IDC_SPOSLIP_RESPONSE_TIMEOUT, WM_SETTEXT, 0, (LPARAM)response_timeout_string.c_str());
+
 	// WRITE TO REGISTRY
 	REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), startSPListenerOnStartup ? 1 : 0);
-	RegSaveString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, listener_ip_address);
+	RegSaveString(TEXT(REG_CONFIG), TEXT(REGVALUE_SP_LISTENER_ADDRESS), 1, listener_ip_address);
 	REGSAVE(TEXT(REGVALUE_SP_LISTENER_PORT), listener_port);
+	REGSAVE(TEXT(REGVALUE_SP_RESPONSE_TIMEOUT), listener_response_timeout);
 
 	// if the user unchecked start, or if they changed port/address, then always stop
-	if (!startSPListenerOnStartup || (current_ip != listener_ip_address) || (current_port != listener_port)) {
+	if (!startSPListenerOnStartup || (current_ip != listener_ip_address) || (current_port != listener_port) || (current_response_timeout != listener_response_timeout)) {
 		listener.stop();
 	}
 
 	// if the user set "start" and we're not listening, start it.
 	if (!listener.get_is_listening() && startSPListenerOnStartup)
 	{
-		listener.Initialize(listener_ip_address, listener_port);
+		listener.Initialize(listener_ip_address, listener_port, listener_response_timeout);
 		listener.start();
 	}
 

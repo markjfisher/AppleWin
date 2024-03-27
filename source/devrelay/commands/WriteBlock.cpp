@@ -1,7 +1,8 @@
 #ifdef DEV_RELAY_SLIP
 
-#include "WriteBlock.h"
 #include <cstdint>
+#include <iostream>
+#include "WriteBlock.h"
 
 WriteBlockRequest::WriteBlockRequest(const uint8_t request_sequence_number, const uint8_t device_id, const uint16_t block_size) : Request(request_sequence_number, CMD_WRITE_BLOCK, device_id), block_number_{}, block_data_{}, block_size_(block_size) {}
 
@@ -23,7 +24,8 @@ std::unique_ptr<Response> WriteBlockRequest::deserialize(const std::vector<uint8
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize WriteBlockResponse");
+		std::cerr << "Not enough data to deserialize WriteBlockResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<WriteBlockResponse>(data[0], data[1]);

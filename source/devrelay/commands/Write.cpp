@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include "Write.h"
 
 WriteRequest::WriteRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_WRITE, device_id), byte_count_(), address_() {}
@@ -20,7 +21,8 @@ std::unique_ptr<Response> WriteRequest::deserialize(const std::vector<uint8_t> &
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize WriteResponse");
+		std::cerr << "Not enough data to deserialize WriteResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<WriteResponse>(data[0], data[1]);

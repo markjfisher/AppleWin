@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include "ReadBlock.h"
 
 ReadBlockRequest::ReadBlockRequest(const uint8_t request_sequence_number, const uint8_t device_id, uint16_t block_size) : Request(request_sequence_number, CMD_READ_BLOCK, device_id), block_number_{}, block_size_(block_size) {}
@@ -20,7 +21,8 @@ std::unique_ptr<Response> ReadBlockRequest::deserialize(const std::vector<uint8_
 {
 	if (data.size() != (block_size_ + 2))
 	{
-		throw std::runtime_error("Not enough data to deserialize ReadBlockResponse");
+		std::cerr << "Not enough data to deserialize ReadBlockResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<ReadBlockResponse>(data[0], data[1], block_size_);

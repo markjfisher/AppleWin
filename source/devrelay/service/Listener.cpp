@@ -45,10 +45,11 @@ Listener &GetCommandListener(void)
 
 Listener::Listener() : is_listening_(false) {}
 
-void Listener::Initialize(std::string ip_address, const uint16_t port)
+void Listener::Initialize(std::string ip_address, const uint16_t port, const uint16_t response_timeout)
 {
 	ip_address_ = std::move(ip_address);
 	port_ = port;
+	response_timeout_ = response_timeout;
 }
 
 bool Listener::get_is_listening() const { return is_listening_; }

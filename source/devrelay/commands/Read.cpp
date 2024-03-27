@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include "Read.h"
 
 ReadRequest::ReadRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_READ, device_id), byte_count_(), address_() {}
@@ -19,7 +20,8 @@ std::unique_ptr<Response> ReadRequest::deserialize(const std::vector<uint8_t> &d
 {
 	if (data.size() < 3)
 	{
-		throw std::runtime_error("Not enough data to deserialize ReadResponse");
+		std::cerr << "Not enough data to deserialize ReadResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<ReadResponse>(data[0], data[1]);

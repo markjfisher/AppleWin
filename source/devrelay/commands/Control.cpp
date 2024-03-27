@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include "Control.h"
 
 ControlRequest::ControlRequest(const uint8_t request_sequence_number, const uint8_t device_id, const uint8_t control_code, std::vector<uint8_t> &data)
@@ -22,7 +23,8 @@ std::unique_ptr<Response> ControlRequest::deserialize(const std::vector<uint8_t>
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize ControlResponse");
+		std::cerr << "Not enough data to deserialize ControlResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<ControlResponse>(data[0], data[1]);

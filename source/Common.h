@@ -126,6 +126,7 @@ enum AppMode_e
 #define  REGVALUE_START_SP_SLIP_LISTENER "SPoverSLIP Run Listener At Start"
 #define  REGVALUE_SP_LISTENER_ADDRESS    "SPoverSLIP Listener Address"
 #define  REGVALUE_SP_LISTENER_PORT       "SPoverSLIP Listener Port"
+#define  REGVALUE_SP_RESPONSE_TIMEOUT    "SPoverSLIP Response Timeout"
 
 // Preferences 
 #define REG_PREFS						"Preferences"

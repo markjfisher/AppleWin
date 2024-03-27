@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include <stdexcept>
 
 #include "Status.h"
@@ -23,7 +24,8 @@ std::unique_ptr<Response> StatusRequest::deserialize(const std::vector<uint8_t> 
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize StatusResponse");
+		std::cerr << "Not enough data to deserialize StatusResponse" << std::endl;
+        return nullptr;
 	}
 
 	auto response = std::make_unique<StatusResponse>(data[0], data[1]);

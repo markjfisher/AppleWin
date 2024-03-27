@@ -1,5 +1,6 @@
 #ifdef DEV_RELAY_SLIP
 
+#include <iostream>
 #include "Open.h"
 
 OpenRequest::OpenRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_OPEN, device_id) {}
@@ -17,7 +18,8 @@ std::unique_ptr<Response> OpenRequest::deserialize(const std::vector<uint8_t> &d
 {
 	if (data.size() < 2)
 	{
-		throw std::runtime_error("Not enough data to deserialize OpenResponse");
+		std::cerr << "Not enough data to deserialize OpenResponse" << std::endl;
+		return nullptr;
 	}
 
 	auto response = std::make_unique<OpenResponse>(data[0], data[1]);
