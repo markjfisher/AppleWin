@@ -17,11 +17,12 @@ namespace sa2
     bool Quit() const override;
 
   protected:
-    void GetRelativeMousePosition(const SDL_MouseMotionEvent & motion, double & x, double & y) const override;
+    void GetRelativeMousePosition(const SDL_MouseMotionEvent & motion, float & x, float & y) const override;
+    void ToggleMouseCursor() override;
 
   private:
 
-    static constexpr Uint32 ourFormat = SDL_PIXELFORMAT_ARGB8888;
+    static constexpr SDL_PixelFormatEnum ourPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 
     SDL_Rect myRect;
     int myPitch;

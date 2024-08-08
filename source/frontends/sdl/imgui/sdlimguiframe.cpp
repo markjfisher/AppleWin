@@ -52,6 +52,7 @@ namespace sa2
   SDLImGuiFrame::SDLImGuiFrame(const common2::EmulatorOptions & options)
     : SDLFrame(options)
     , myPresenting(false)
+    , myShowMouseCursor(true)
   {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SA2_CONTEXT_FLAGS);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SA2_CONTEXT_PROFILE_MASK);
@@ -177,7 +178,7 @@ namespace sa2
     const ImVec2 uv0(0, 1);
     const ImVec2 uv1(1, 0);
 
-    const float menuBarHeight = mySettings.drawMenuBar(this);
+    const float menuBarHeight = mySettings.drawMenuBar(this, !myFullscreen);
     myDeadTopZone = menuBarHeight;
 
     if (mySettings.windowed)
@@ -208,14 +209,15 @@ namespace sa2
     }
   }
 
-  void SDLImGuiFrame::GetRelativeMousePosition(const SDL_MouseMotionEvent & motion, double & x, double & y) const
+  void SDLImGuiFrame::GetRelativeMousePosition(const SDL_MouseMotionEvent & motion, float & x, float & y) const
   {
     // this currently ignores a windowed apple video and applies to the whole sdl window
-    int width, height;
-    SDL_GetWindowSize(myWindow.get(), &width, &height);
+    int w, h;
+    SDL_GetWindowSize(myWindow.get(), &w, &h);
 
-    const int posY = std::max(motion.y - myDeadTopZone, 0);
-    height = std::max(height - myDeadTopZone, 1);  // a real window has a minimum size of 1
+    const float posY = std::max(motion.y - myDeadTopZone, 0.0f);
+    const float height = std::max(h - myDeadTopZone, 1.0f);  // a real window has a minimum size of 1
+    const float width = w;
 
     x = GetRelativePosition(motion.x, width);
     y = GetRelativePosition(posY, height);
@@ -231,6 +233,11 @@ namespace sa2
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplSDL2_NewFrame();
       ImGui::NewFrame();
+
+      if (!myShowMouseCursor)
+      {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+      } // otherwise leave it to the default set in ImGui::NewFrame();
 
       // "this" is a bit circular
       mySettings.show(this, myDebuggerFont);
@@ -327,6 +334,11 @@ namespace sa2
   {
     SDLFrame::ResetSpeed();
     mySettings.resetDebuggerCycles();
+  }
+
+  void SDLImGuiFrame::ToggleMouseCursor()
+  {
+    myShowMouseCursor = !myShowMouseCursor;
   }
 
 }

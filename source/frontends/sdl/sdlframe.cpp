@@ -341,10 +341,10 @@ namespace sa2
     }
   }
 
-  double SDLFrame::GetRelativePosition(const int value, const int size)
+  float SDLFrame::GetRelativePosition(const float value, const float size)
   {
     // the minimum size of a window is 1
-    const double result = double(value) / double(std::max(1, size - 1));
+    const float result = value / std::max(1.0f, size - 1.0f);
     return result;
   }
 
@@ -395,7 +395,7 @@ namespace sa2
         const int sizeY = iMaxY - iMinY;
 
 
-        double x, y;
+        float x, y;
         GetRelativeMousePosition(motion, x, y);
 
         const int newX = lround(x * sizeX) + iMinX;
@@ -448,6 +448,10 @@ namespace sa2
           if (modifiers == KMOD_NONE)
           {
             CycleVideoType();
+          }
+          else if (modifiers == KMOD_CTRL)
+          {
+            ToggleMouseCursor();
           }
           break;
         }
@@ -531,8 +535,7 @@ namespace sa2
         }
       case SDLK_PAUSE:
         {
-          const AppMode_e newMode = (g_nAppMode == MODE_RUNNING) ? MODE_PAUSED : MODE_RUNNING;
-          ChangeMode(newMode);
+          TogglePaused();
           break;
         }
       case SDLK_CAPSLOCK:
@@ -635,6 +638,11 @@ namespace sa2
     return myPreserveAspectRatio;
   }
 
+  bool & SDLFrame::getAutoBoot()
+  {
+    return myAutoBoot;
+  }
+
   void SDLFrame::SetFullSpeed(const bool value)
   {
     CommonFrame::SetFullSpeed(value);
@@ -689,7 +697,7 @@ namespace sa2
     #ifdef U2_USE_SLIRP
       return std::make_shared<SlirpBackend>(myPortFwds);
     #else
-      return std::make_shared<PCapBackend>(interfaceName);
+      return common2::GNUFrame::CreateNetworkBackend(interfaceName);
     #endif
   }
 

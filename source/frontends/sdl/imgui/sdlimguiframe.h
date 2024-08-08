@@ -24,7 +24,8 @@ namespace sa2
 
     void ProcessSingleEvent(const SDL_Event & event, bool & quit) override;
     void ProcessKeyDown(const SDL_KeyboardEvent & key, bool &quit) override;
-    void GetRelativeMousePosition(const SDL_MouseMotionEvent & motion, double & x, double & y) const override;
+    void GetRelativeMousePosition(const SDL_MouseMotionEvent & motion, float & x, float & y) const override;
+    void ToggleMouseCursor() override;
 
   private:
 
@@ -38,8 +39,9 @@ namespace sa2
     size_t myBorderlessHeight;
     float myOriginalAspectRatio;
 
-    int myDeadTopZone; // for mouse position
+    float myDeadTopZone; // for mouse position
     bool myPresenting; // VideoPresentScreen() is NOT REENTRANT
+    bool myShowMouseCursor;
 
     SDL_GLContext myGLContext;
     ImTextureID myTexture;
