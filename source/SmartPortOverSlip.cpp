@@ -99,10 +99,10 @@ void SmartPortOverSlip::handle_smartport_call()
 	WORD rts_location = static_cast<WORD>(mem[regs.sp + 1]) + static_cast<WORD>(mem[regs.sp + 2] << 8);
 	const BYTE command = mem[rts_location + 1];
 	const WORD cmd_list_loc = mem[rts_location + 2] + (mem[rts_location + 3] << 8);
-	// BYTE paramCount = mem[cmdListLoc]; // parameter count not used
+	const BYTE param_count = mem[cmd_list_loc];
 	const BYTE unit_number = mem[cmd_list_loc + 1];
 	const WORD sp_payload_loc = static_cast<WORD>(mem[cmd_list_loc + 2]) + static_cast<WORD>(mem[cmd_list_loc + 3] << 8);
-	const WORD params_loc = cmd_list_loc + 4;
+	const WORD params_loc = cmd_list_loc + 2; // we are ONLY skipping the count and destination bytes (used to skip the payload bytes, but that's only certain commands)
 
 	// LogFileOutput("SmartPortOverSlip processing SP command: 0x%02x, unit: "
 	//	"0x%02x, cmdList: 0x%04x, spPayLoad: 0x%04x, p1: 0x%02x\n",
@@ -119,8 +119,8 @@ void SmartPortOverSlip::handle_smartport_call()
 	memdirty[dirty_page_end] = 0xFF;
 
 
-	// Deal with unit 0, status 0 call to return device count, doesn't need connection details.
-	if (unit_number == 0 && mem[params_loc] == 0)
+	// Deal with status call (command == 0) with params unit == 0, status_code == 0 to return device count, doesn't need connection details.
+	if (command == 0 && unit_number == 0 && mem[params_loc + 2] == 0)
 	{
 		device_count(sp_payload_loc);
 		return;
@@ -142,19 +142,22 @@ void SmartPortOverSlip::handle_smartport_call()
 	switch (command)
 	{
 	case CMD_STATUS:
-		status_sp(device_id, connection, sp_payload_loc, mem[params_loc]);
+		status_sp(device_id, connection, sp_payload_loc, param_count, params_loc); // we are including the payload params and count part now too
 		break;
 	case CMD_READ_BLOCK:
-		read_block(device_id, connection, sp_payload_loc, params_loc);
+		// TODO: fix the fact params_loc has changed from +4 to +2
+		read_block(device_id, connection, sp_payload_loc, params_loc + 2);
 		break;
 	case CMD_WRITE_BLOCK:
-		write_block(device_id, connection, sp_payload_loc, params_loc);
+		// TODO: fix the fact params_loc has changed from +4 to +2
+		write_block(device_id, connection, sp_payload_loc, params_loc + 2);
 		break;
 	case CMD_FORMAT:
 		format(device_id, connection);
 		break;
 	case CMD_CONTROL:
-		control(device_id, connection, sp_payload_loc, mem[params_loc]);
+		// TODO: fix the fact params_loc has changed from +4 to +2
+		control(device_id, connection, sp_payload_loc, param_count, params_loc);
 		break;
 	case CMD_INIT:
 		init(device_id, connection);
@@ -166,10 +169,12 @@ void SmartPortOverSlip::handle_smartport_call()
 		close(device_id, connection);
 		break;
 	case CMD_READ:
-		read(device_id, connection, sp_payload_loc, params_loc);
+		// TODO: fix the fact params_loc has changed from +4 to +2
+		read(device_id, connection, sp_payload_loc, params_loc + 2);
 		break;
 	case CMD_WRITE:
-		write(device_id, connection, sp_payload_loc, params_loc);
+		// TODO: fix the fact params_loc has changed from +4 to +2
+		write(device_id, connection, sp_payload_loc, params_loc + 2);
 		break;
 	case CMD_RESET:
 		reset(device_id, connection);
@@ -480,9 +485,11 @@ void SmartPortOverSlip::write(const BYTE unit_number, Connection *connection, co
 	handle_simple_response<WriteResponse>(std::move(response));
 }
 
-void SmartPortOverSlip::status_sp(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const BYTE status_code)
+void SmartPortOverSlip::status_sp(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const BYTE params_count, const WORD params_loc)
 {
-	auto response = status(unit_number, connection, status_code);
+	const BYTE status_code = mem[params_loc + 2];
+	const BYTE network_unit = params_count > 3 ? mem[params_loc + 3] : 0;
+	auto response = status(unit_number, connection, status_code, network_unit);
 	handle_response<StatusResponse>(std::move(response), [sp_payload_loc](const StatusResponse *sr) {
 		const auto response_size = sr->get_data().size();
 		memcpy(mem + sp_payload_loc, sr->get_data().data(), response_size);
@@ -499,16 +506,16 @@ void SmartPortOverSlip::status_sp(const BYTE unit_number, Connection *connection
 	});
 }
 
-std::unique_ptr<Response> SmartPortOverSlip::status(const BYTE unit_number, Connection *connection, const BYTE status_code)
+std::unique_ptr<Response> SmartPortOverSlip::status(const BYTE unit_number, Connection *connection, const BYTE status_code, const BYTE network_unit)
 {
 	// see https://www.1000bit.it/support/manuali/apple/technotes/smpt/tn.smpt.2.html
-	const StatusRequest request(Requestor::next_request_number(), unit_number, status_code);
+	const StatusRequest request(Requestor::next_request_number(), unit_number, status_code, network_unit);
 	return Requestor::send_request(request, connection);
 }
 
 std::unique_ptr<StatusResponse> SmartPortOverSlip::status_pd(const BYTE unit_number, Connection *connection, const BYTE status_code)
 {
-	auto response = status(unit_number, connection, status_code);
+	auto response = status(unit_number, connection, status_code, 0);
 
 	// Cast the Response to a StatusResponse. We need to release ownership. As ChatGPT explains:
 	/*
@@ -519,13 +526,15 @@ std::unique_ptr<StatusResponse> SmartPortOverSlip::status_pd(const BYTE unit_num
 	return std::unique_ptr<StatusResponse>(static_cast<StatusResponse *>(response.release()));
 }
 
-void SmartPortOverSlip::control(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const BYTE control_code)
+void SmartPortOverSlip::control(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const BYTE params_count, const WORD params_loc)
 {
+	const BYTE control_code = mem[params_loc + 2]; // skip the payload location bytes
+	const BYTE network_unit = params_count > 3 ? mem[params_loc + 3] : 0;
 	const auto length = mem[sp_payload_loc] + (mem[sp_payload_loc + 1] << 8) + 2;
 	uint8_t *start_ptr = &mem[sp_payload_loc];
 	std::vector<uint8_t> payload(start_ptr, start_ptr + length);
 
-	const ControlRequest request(Requestor::next_request_number(), unit_number, control_code, payload);
+	const ControlRequest request(Requestor::next_request_number(), unit_number, control_code, network_unit, payload);
 	auto response = Requestor::send_request(request, connection);
 	handle_simple_response<ControlResponse>(std::move(response));
 }
