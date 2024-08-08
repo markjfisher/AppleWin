@@ -35,14 +35,16 @@ std::unique_ptr<Request> Request::from_packet(const std::vector<uint8_t>& packet
   switch(command) {
 
   case CMD_STATUS: {
-    request = std::make_unique<StatusRequest>(packet[0], packet[2], packet[3]);
+    uint8_t network_unit = packet.size() > 4 ? packet[4] : 0;
+    request = std::make_unique<StatusRequest>(packet[0], packet[2], packet[3], network_unit);
     break;
   }
 
   case CMD_CONTROL: {
-    // +6 = 3 for "header", 1 for control code, 2 for length bytes we need to skip
-    std::vector<uint8_t> payload(packet.begin() + 6, packet.end());
-    request = std::make_unique<ControlRequest>(packet[0], packet[2], packet[3], payload);
+    uint8_t network_unit = packet.size() > 4 ? packet[4] : 0;
+    // +7 = 3 for "header", 1 for control code, 1 for network unit, 2 for length bytes we need to skip
+    std::vector<uint8_t> payload(packet.begin() + 7, packet.end());
+    request = std::make_unique<ControlRequest>(packet[0], packet[2], packet[3], network_unit, payload);
     break;
   }
 

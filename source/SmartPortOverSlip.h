@@ -32,7 +32,7 @@ public:
 	static void device_count(WORD sp_payload_loc);
 	void handle_smartport_call();
 	void handle_prodos_call();
-	void control(BYTE unit_number, Connection *connection, WORD sp_payload_loc, BYTE control_code);
+	void control(BYTE unit_number, Connection *connection, WORD sp_payload_loc, const BYTE params_count, const WORD params_loc);
 	void init(BYTE unit_number, Connection *connection);
 	void open(BYTE unit_number, Connection *connection);
 	void close(BYTE unit_number, Connection *connection);
@@ -43,9 +43,9 @@ public:
 	void read(BYTE unit_number, Connection *connection, WORD sp_payload_loc, WORD params_loc);
 	void write(BYTE unit_number, Connection *connection, WORD sp_payload_loc, WORD params_loc);
 
-	std::unique_ptr<Response> status(BYTE unit_number, Connection *connection, BYTE status_code);
+	std::unique_ptr<Response> status(BYTE unit_number, Connection *connection, const BYTE status_code, const BYTE network_unit);
 	std::unique_ptr<StatusResponse> status_pd(const BYTE unit_number, Connection *connection, const BYTE status_code);
-	void status_sp(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const BYTE status_code);
+	void status_sp(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const BYTE params_count, const WORD params_loc);
 
 	void handle_prodos_status(uint8_t drive_num, std::pair<int, int> disk_devices);
 	void handle_prodos_read(uint8_t drive_num, std::pair<int, int> disk_devices);
