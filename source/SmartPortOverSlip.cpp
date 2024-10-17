@@ -334,7 +334,7 @@ void SmartPortOverSlip::handle_prodos_read(uint8_t drive_num, std::pair<int, int
 	auto id_connection = GetCommandListener().find_connection_with_device(device_id);
 
 	// Do a ReadRequest, and shove the 512 byte block into the required memory
-	ReadBlockRequest request(Requestor::next_request_number(), id_connection.first, 512);
+	ReadBlockRequest request(Requestor::next_request_number(), id_connection.first);
 	// $46-47 = Block Number
 	request.set_block_number_from_bytes(mem[0x46], mem[0x47], 0);
 	auto response = Requestor::send_request(request, id_connection.second.get());
@@ -360,7 +360,7 @@ void SmartPortOverSlip::handle_prodos_write(uint8_t drive_num, std::pair<int, in
 	auto device_id = drive_num == 1 ? disk_devices.first : disk_devices.second;
 	auto id_connection = GetCommandListener().find_connection_with_device(device_id);
 
-	WriteBlockRequest request(Requestor::next_request_number(), id_connection.first, 512);
+	WriteBlockRequest request(Requestor::next_request_number(), id_connection.first);
 	// $46-47 = Block Number
 	request.set_block_number_from_bytes(mem[0x46], mem[0x47], 0);
 	// put data into the request we're sending
@@ -420,7 +420,7 @@ void SmartPortOverSlip::device_count(const WORD sp_payload_loc)
 
 void SmartPortOverSlip::read_block(const BYTE unit_number, Connection *connection, const WORD buffer_location, const WORD block_count_address)
 {
-	ReadBlockRequest request(Requestor::next_request_number(), unit_number, 512);
+	ReadBlockRequest request(Requestor::next_request_number(), unit_number);
 	// Assume that (cmd_list_loc + 4 == block_count_address) holds 3 bytes for the block number. If it's in the payload, this is wrong and will have to be fixed.
 	request.set_block_number_from_ptr(mem, block_count_address);
 	auto response = Requestor::send_request(request, connection);
@@ -440,7 +440,7 @@ void SmartPortOverSlip::read_block(const BYTE unit_number, Connection *connectio
 
 void SmartPortOverSlip::write_block(const BYTE unit_number, Connection *connection, const WORD sp_payload_loc, const WORD params_loc)
 {
-	WriteBlockRequest request(Requestor::next_request_number(), unit_number, 512);
+	WriteBlockRequest request(Requestor::next_request_number(), unit_number);
 	// Assume that (cmd_list_loc + 4 == params_loc) holds 3 bytes for the block number. The payload contains the data to write
 	request.set_block_number_from_ptr(mem, params_loc);
 	request.set_block_data_from_ptr(mem, sp_payload_loc);

@@ -4,7 +4,7 @@
 #include <iostream>
 #include "WriteBlock.h"
 
-WriteBlockRequest::WriteBlockRequest(const uint8_t request_sequence_number, const uint8_t device_id, const uint16_t block_size) : Request(request_sequence_number, CMD_WRITE_BLOCK, device_id), block_number_{}, block_data_{}, block_size_(block_size) {}
+WriteBlockRequest::WriteBlockRequest(const uint8_t request_sequence_number, const uint8_t device_id) : Request(request_sequence_number, CMD_WRITE_BLOCK, device_id), block_number_{}, block_data_{} {}
 
 std::vector<uint8_t> WriteBlockRequest::serialize() const
 {
@@ -12,8 +12,6 @@ std::vector<uint8_t> WriteBlockRequest::serialize() const
 	request_data.push_back(this->get_request_sequence_number());
 	request_data.push_back(this->get_command_number());
 	request_data.push_back(this->get_device_id());
-	request_data.push_back(this->get_block_size() & 0xFF);
-	request_data.push_back((this->get_block_size() >> 8) & 0xFF);
 	request_data.insert(request_data.end(), block_number_.begin(), block_number_.end());
 	request_data.insert(request_data.end(), block_data_.begin(), block_data_.end());
 
@@ -34,9 +32,7 @@ std::unique_ptr<Response> WriteBlockRequest::deserialize(const std::vector<uint8
 
 const std::array<uint8_t, 3> &WriteBlockRequest::get_block_number() const { return block_number_; }
 
-const std::vector<uint8_t> &WriteBlockRequest::get_block_data() const { return block_data_; }
-
-const uint16_t WriteBlockRequest::get_block_size() const { return block_size_; }
+const std::array<uint8_t, 512> &WriteBlockRequest::get_block_data() const { return block_data_; }
 
 void WriteBlockRequest::set_block_number_from_ptr(const uint8_t *ptr, const size_t offset) { std::copy_n(ptr + offset, block_number_.size(), block_number_.begin()); }
 
