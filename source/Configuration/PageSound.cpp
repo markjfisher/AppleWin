@@ -182,6 +182,7 @@ CPageSound::SOUNDCARDCHOICE CPageSound::CardTypeToComboItem(SS_CARDTYPE card)
 	case CT_MegaAudio: return SC_MEGAAUDIO;
 	case CT_SDMusic: return SC_SDMUSIC;
 	case CT_SmartPortOverSlip: return SC_EMPTY;
+	case CT_DummySmartport: return SC_EMPTY;
 	default: _ASSERT(0); return SC_EMPTY;
 	}
 }

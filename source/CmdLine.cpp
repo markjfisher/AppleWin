@@ -225,6 +225,10 @@ bool ProcessCmdLine(LPSTR lpCmdLine)
 				{
 					g_cmdLine.slotInsert[slot] = CT_SmartPortOverSlip;
 				}
+				if (strcmp(lpCmdLine, "dummysp") == 0)
+				{
+					g_cmdLine.slotInsert[slot] = CT_DummySmartport;
+				}
 				
 			}
 			else if (lpCmdLine[3] == 'd' && (lpCmdLine[4] == '1' || lpCmdLine[4] == '2'))	// -s[1..7]d[1|2] <dsk-image>
