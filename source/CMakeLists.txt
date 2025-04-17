@@ -99,6 +99,7 @@ set(SOURCE_FILES
   FrameBase.cpp
   CmdLine.cpp
   SmartPortOverSlip.cpp
+  DummySmartport.cpp
 
   Configuration/PropertySheetHelper.cpp
   Configuration/Config.cpp
@@ -211,6 +212,7 @@ set(HEADER_FILES
   FourPlay.h
   SNESMAX.h
   SmartPortOverSlip.h
+  DummySmartport.h
 
   Common.h
   DiskDefs.h

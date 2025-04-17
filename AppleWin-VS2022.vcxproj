@@ -105,6 +105,7 @@
     <ClInclude Include="source\FourPlay.h" />
     <ClInclude Include="source\FrameBase.h" />
     <ClInclude Include="source\SmartPortOverSlip.h" />
+    <ClInclude Include="source\DummySmartport.h" />
     <ClInclude Include="source\Harddisk.h" />
     <ClInclude Include="source\Interface.h" />
     <ClInclude Include="source\Joystick.h" />
@@ -259,6 +260,7 @@
     <ClCompile Include="source\FourPlay.cpp" />
     <ClCompile Include="source\FrameBase.cpp" />
     <ClCompile Include="source\SmartPortOverSlip.cpp" />
+    <ClCompile Include="source\DummySmartport.cpp" />
     <ClCompile Include="source\MockingboardCardManager.cpp" />
     <ClCompile Include="source\RGBMonitor.cpp" />
     <ClCompile Include="source\SAM.cpp" />
