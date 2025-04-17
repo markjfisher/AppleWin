@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Uthernet1.h"
 #include "Uthernet2.h"
 #include "SmartPortOverSlip.h"
+#include "DummySmartport.h"
 #include "Mockingboard.h"
 #include "ParallelPrinter.h"
 #include "z80emu.h"
@@ -162,6 +163,8 @@ std::string Card::GetCardName(const SS_CARDTYPE cardType)
 		return Uthernet2::GetSnapshotCardName();
 	case CT_SmartPortOverSlip:
 		return SmartPortOverSlip::GetSnapshotCardName();
+	case CT_DummySmartport:
+		return DummySmartport::GetSnapshotCardName();
 	case CT_MegaAudio:
 		return MockingboardCard::GetSnapshotCardNameMegaAudio();
 	case CT_SDMusic:
@@ -240,6 +243,10 @@ SS_CARDTYPE Card::GetCardType(const std::string & card)
 	else if (card == SmartPortOverSlip::GetSnapshotCardName())
 	{
 		return CT_SmartPortOverSlip;
+	}
+	else if (card == DummySmartport::GetSnapshotCardName())
+	{
+		return CT_DummySmartport;
 	}
 	else if (card == MockingboardCard::GetSnapshotCardNameMegaAudio())
 	{

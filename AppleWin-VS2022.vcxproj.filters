@@ -275,6 +275,7 @@
       <Filter>Source Files\Emulator</Filter>
     </ClCompile>
     <ClCompile Include="source\SmartPortOverSlip.cpp" />
+    <ClCompile Include="source\DummySmartport.cpp" />
     <ClCompile Include="source\devrelay\commands\Close.cpp" />
     <ClCompile Include="source\devrelay\commands\Control.cpp" />
     <ClCompile Include="source\devrelay\commands\Format.cpp" />
@@ -639,6 +640,7 @@
       <Filter>Source Files\Emulator</Filter>
     </ClInclude>
     <ClInclude Include="source\SmartPortOverSlip.h" />
+    <ClInclude Include="source\DummySmartport.h" />
     <ClInclude Include="source\devrelay\commands\Close.h" />
     <ClInclude Include="source\devrelay\commands\Control.h" />
     <ClInclude Include="source\devrelay\commands\Format.h" />

@@ -45,6 +45,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Uthernet1.h"
 #include "Uthernet2.h"
 #include "SmartPortOverSlip.h"
+#include "DummySmartport.h"
 #include "VidHD.h"
 #include "LanguageCard.h"
 #include "Memory.h"
@@ -118,8 +119,12 @@ void CardManager::InsertInternal(UINT slot, SS_CARDTYPE type)
 		m_slot[slot] = new Uthernet2(slot);
 		break;
 	case CT_SmartPortOverSlip:
-    LogOutput("Inserting SP over SLIP in slot %d\n", slot);
+		LogOutput("Inserting SP over SLIP in slot %d\n", slot);
 		m_slot[slot] = new SmartPortOverSlip(slot);
+		break;
+	case CT_DummySmartport:
+		LogOutput("Inserting DummySmartport in slot %d\n", slot);
+		m_slot[slot] = new DummySmartport(slot);
 		break;
 	case CT_LanguageCard:
 	case CT_LanguageCardIIe:
