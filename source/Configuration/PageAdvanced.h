@@ -31,15 +31,15 @@ protected:
 
 private:
 	void InitOptions(HWND hWnd);
-	eApple2Type GetCloneType(DWORD NewMenuItem);
+	eApple2Type GetCloneType(uint32_t NewMenuItem);
 	int GetCloneMenuItem(void);
 	void InitFreezeDlgButton(HWND hWnd);
 	void InitCloneDropdownMenu(HWND hWnd);
 	void InitGameIOConnectorDropdownMenu(HWND hWnd);
 
 	static CPageAdvanced* ms_this;
-	static const TCHAR m_CloneChoices[];
-	static const TCHAR m_gameIOConnectorChoices[];
+	static const char m_CloneChoices[];
+	static const char m_gameIOConnectorChoices[];
 
 	const PAGETYPE m_Page;
 	CPropertySheetHelper& m_PropertySheetHelper;

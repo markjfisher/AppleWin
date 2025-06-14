@@ -61,8 +61,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // Backwards compatibility with AppleWin <1.24.0
 static void LoadConfigOldJoystick_v1(const UINT uJoyNum)
 {
-	DWORD dwOldJoyType;
-	if (!REGLOAD(TEXT(uJoyNum==0 ? REGVALUE_OLD_JOYSTICK0_EMU_TYPE1 : REGVALUE_OLD_JOYSTICK1_EMU_TYPE1), &dwOldJoyType))
+	uint32_t dwOldJoyType;
+	if (!REGLOAD(uJoyNum==0 ? REGVALUE_OLD_JOYSTICK0_EMU_TYPE1 : REGVALUE_OLD_JOYSTICK1_EMU_TYPE1, &dwOldJoyType))
 		return;	// EG. Old AppleWin never installed
 
 	UINT uNewJoyType;
@@ -97,42 +97,42 @@ static void LoadConfigOldJoystick_v1(const UINT uJoyNum)
 // - Registry images may have been deleted from disk, so avoid the MessageBox
 void LoadConfiguration(bool loadImages)
 {
-	DWORD dwComputerType = 0;
+	uint32_t dwComputerType = 0;
 	eApple2Type apple2Type = A2TYPE_APPLE2EENHANCED;
 
 	///////////////////////////////////////////////////////////////
 	// SmartPort over SLIP
 	auto& listener = GetCommandListener();
-	DWORD dwRegStartListener = 0;
+	uint32_t dwRegStartListener = 0;
 	bool bStartListener = listener.default_start_listener;
 
-	TCHAR tcAddress[16];
+	char tcAddress[16];
 	strncpy(tcAddress, listener.default_listener_address.data(), 15);
 	tcAddress[15] = '\0'; // ensure it's null terminated in worst case 111.111.111.111
 
-	DWORD dwPort = static_cast<DWORD>(listener.default_port);
-	DWORD dwResponseTimeout = static_cast<DWORD>(listener.default_response_timeout);
+	uint32_t dwPort = static_cast<uint32_t>(listener.default_port);
+	uint32_t dwResponseTimeout = static_cast<uint32_t>(listener.default_response_timeout);
 
-	if (REGLOAD(TEXT(REGVALUE_START_SP_SLIP_LISTENER), &dwRegStartListener))
+	if (REGLOAD(REGVALUE_START_SP_SLIP_LISTENER, &dwRegStartListener))
 	{
 		bStartListener = dwRegStartListener ? true : false;
-		RegLoadString(TEXT(REG_CONFIG), REGVALUE_SP_LISTENER_ADDRESS, 1, tcAddress, 16, listener.default_listener_address.c_str());
-		REGLOAD_DEFAULT(TEXT(REGVALUE_SP_LISTENER_PORT), &dwPort, listener.default_port);
-		REGLOAD_DEFAULT(TEXT(REGVALUE_SP_RESPONSE_TIMEOUT), &dwResponseTimeout, listener.default_response_timeout);
+		RegLoadString(REG_CONFIG, REGVALUE_SP_LISTENER_ADDRESS, 1, tcAddress, 16, listener.default_listener_address.c_str());
+		REGLOAD_DEFAULT(REGVALUE_SP_LISTENER_PORT, &dwPort, listener.default_port);
+		REGLOAD_DEFAULT(REGVALUE_SP_RESPONSE_TIMEOUT, &dwResponseTimeout, listener.default_response_timeout);
 	}
 	else
 	{
 		// Save defaults to registry if non exist, this cleans up some editing issues if there's no values already saved
-		REGSAVE(TEXT(REGVALUE_START_SP_SLIP_LISTENER), 1);
-		RegSaveString(TEXT(REG_CONFIG), TEXT(REGVALUE_SP_LISTENER_ADDRESS), 1, listener.default_listener_address);
-		REGSAVE(TEXT(REGVALUE_SP_LISTENER_PORT), listener.default_port);
-		REGSAVE(TEXT(REGVALUE_SP_RESPONSE_TIMEOUT), listener.default_response_timeout);
+		REGSAVE(REGVALUE_START_SP_SLIP_LISTENER, 1);
+		RegSaveString(REG_CONFIG, REGVALUE_SP_LISTENER_ADDRESS, 1, listener.default_listener_address);
+		REGSAVE(REGVALUE_SP_LISTENER_PORT, listener.default_port);
+		REGSAVE(REGVALUE_SP_RESPONSE_TIMEOUT, listener.default_response_timeout);
 	}
 
 	std::string listener_address(tcAddress);
 	listener_address = listener.check_and_set_ip_address(listener_address);
 
-	// check the input number wasn't too small or too large as DWORD is 4 bytes, port is only 2.
+	// check the input number wasn't too small or too large as uint32_t is 4 bytes, port is only 2.
 	// Could be running as root (the horror) and get a port <1024
 	if (dwPort > 65535 || dwPort == 0) {
 		dwPort = listener.default_port;
@@ -157,9 +157,10 @@ void LoadConfiguration(bool loadImages)
 	listener.set_response_timeout(response_timeout);
 	///////////////////////////////////////////////////////////////
 
-	if (REGLOAD(TEXT(REGVALUE_APPLE2_TYPE), &dwComputerType))
+
+	if (REGLOAD(REGVALUE_APPLE2_TYPE, &dwComputerType))
 	{
-		const DWORD dwLoadedComputerType = dwComputerType;
+		const uint32_t dwLoadedComputerType = dwComputerType;
 
 		if ( (dwComputerType >= A2TYPE_MAX) ||
 			 (dwComputerType >= A2TYPE_UNDEFINED && dwComputerType < A2TYPE_CLONE) ||
@@ -186,7 +187,7 @@ void LoadConfiguration(bool loadImages)
 
 		apple2Type = (eApple2Type) dwComputerType;
 	}
-	else if (REGLOAD(TEXT(REGVALUE_OLD_APPLE2_TYPE), &dwComputerType))	// Support older AppleWin registry entries
+	else if (REGLOAD(REGVALUE_OLD_APPLE2_TYPE, &dwComputerType))	// Support older AppleWin registry entries
 	{
 		switch (dwComputerType)
 		{
@@ -202,38 +203,38 @@ void LoadConfiguration(bool loadImages)
 
 	//
 
-	DWORD dwMainCpuType;
-	REGLOAD_DEFAULT(TEXT(REGVALUE_CPU_TYPE), &dwMainCpuType, CPU_65C02);
+	uint32_t dwMainCpuType;
+	REGLOAD_DEFAULT(REGVALUE_CPU_TYPE, &dwMainCpuType, CPU_65C02);
 	if (dwMainCpuType != CPU_6502 && dwMainCpuType != CPU_65C02)
 		dwMainCpuType = CPU_65C02;
 	SetMainCpu((eCpuType)dwMainCpuType);
 
 	//
 
-	DWORD dwJoyType;
-	if (REGLOAD(TEXT(REGVALUE_JOYSTICK0_EMU_TYPE), &dwJoyType))
+	uint32_t dwJoyType;
+	if (REGLOAD(REGVALUE_JOYSTICK0_EMU_TYPE, &dwJoyType))
 		JoySetJoyType(JN_JOYSTICK0, dwJoyType);
-	else if (REGLOAD(TEXT(REGVALUE_OLD_JOYSTICK0_EMU_TYPE2), &dwJoyType))	// GH#434
+	else if (REGLOAD(REGVALUE_OLD_JOYSTICK0_EMU_TYPE2, &dwJoyType))	// GH#434
 		JoySetJoyType(JN_JOYSTICK0, dwJoyType);
 	else
 		LoadConfigOldJoystick_v1(JN_JOYSTICK0);
 
-	if (REGLOAD(TEXT(REGVALUE_JOYSTICK1_EMU_TYPE), &dwJoyType))
+	if (REGLOAD(REGVALUE_JOYSTICK1_EMU_TYPE, &dwJoyType))
 		JoySetJoyType(JN_JOYSTICK1, dwJoyType);
-	else if (REGLOAD(TEXT(REGVALUE_OLD_JOYSTICK1_EMU_TYPE2), &dwJoyType))	// GH#434
+	else if (REGLOAD(REGVALUE_OLD_JOYSTICK1_EMU_TYPE2, &dwJoyType))	// GH#434
 		JoySetJoyType(JN_JOYSTICK1, dwJoyType);
 	else
 		LoadConfigOldJoystick_v1(JN_JOYSTICK1);
 
-	DWORD copyProtectionDongleType;
+	uint32_t copyProtectionDongleType;
 	std::string regSection = RegGetConfigSlotSection(GAME_IO_CONNECTOR);
 	if (RegLoadValue(regSection.c_str(), REGVALUE_GAME_IO_TYPE, TRUE, &copyProtectionDongleType))
 		SetCopyProtectionDongleType((DONGLETYPE)copyProtectionDongleType);
 	else
 		SetCopyProtectionDongleType(DT_EMPTY);
 
-	DWORD dwSoundType;
-	REGLOAD_DEFAULT(TEXT(REGVALUE_SOUND_EMULATION), &dwSoundType, REG_SOUNDTYPE_WAVE);
+	uint32_t dwSoundType;
+	REGLOAD_DEFAULT(REGVALUE_SOUND_EMULATION, &dwSoundType, REG_SOUNDTYPE_WAVE);
 	switch (dwSoundType)
 	{
 	case REG_SOUNDTYPE_NONE:
@@ -247,57 +248,51 @@ void LoadConfiguration(bool loadImages)
 		break;
 	}
 
-	REGLOAD_DEFAULT(TEXT(REGVALUE_EMULATION_SPEED), &g_dwSpeed, SPEED_NORMAL);
+	REGLOAD_DEFAULT(REGVALUE_EMULATION_SPEED, &g_dwSpeed, SPEED_NORMAL);
 	GetVideo().Config_Load_Video();
 	SetCurrentCLK6502();	// Pre: g_dwSpeed && Config_Load_Video()->SetVideoRefreshRate()
 
 	//
 
-	DWORD dwTmp = 0;
+	uint32_t dwTmp = 0;
 
-	if(REGLOAD(TEXT(REGVALUE_FS_SHOW_SUBUNIT_STATUS), &dwTmp))
+	if(REGLOAD(REGVALUE_FS_SHOW_SUBUNIT_STATUS, &dwTmp))
 		GetFrame().SetFullScreenShowSubunitStatus(dwTmp ? true : false);
 
-	if (REGLOAD(TEXT(REGVALUE_SHOW_DISKII_STATUS), &dwTmp))
+	if (REGLOAD(REGVALUE_SHOW_DISKII_STATUS, &dwTmp))
 		GetFrame().SetWindowedModeShowDiskiiStatus(dwTmp ? true : false);
 
-	if(REGLOAD(TEXT(REGVALUE_THE_FREEZES_F8_ROM), &dwTmp))
+	if(REGLOAD(REGVALUE_THE_FREEZES_F8_ROM, &dwTmp))
 		GetPropertySheet().SetTheFreezesF8Rom(dwTmp);
 
-	if(REGLOAD(TEXT(REGVALUE_SPKR_VOLUME), &dwTmp))
-		SpkrSetVolume(dwTmp, GetPropertySheet().GetVolumeMax());
-
-	if(REGLOAD(TEXT(REGVALUE_MB_VOLUME), &dwTmp))
-		GetCardMgr().GetMockingboardCardMgr().SetVolume(dwTmp, GetPropertySheet().GetVolumeMax());
-
-	if(REGLOAD(TEXT(REGVALUE_SAVE_STATE_ON_EXIT), &dwTmp))
+	if(REGLOAD(REGVALUE_SAVE_STATE_ON_EXIT, &dwTmp))
 		g_bSaveStateOnExit = dwTmp ? true : false;
 
-	if(REGLOAD(TEXT(REGVALUE_PDL_XTRIM), &dwTmp))
+	if(REGLOAD(REGVALUE_PDL_XTRIM, &dwTmp))
 		JoySetTrim((short)dwTmp, true);
-	if(REGLOAD(TEXT(REGVALUE_PDL_YTRIM), &dwTmp))
+	if(REGLOAD(REGVALUE_PDL_YTRIM, &dwTmp))
 		JoySetTrim((short)dwTmp, false);
 
-	if(REGLOAD(TEXT(REGVALUE_SCROLLLOCK_TOGGLE), &dwTmp))
+	if(REGLOAD(REGVALUE_SCROLLLOCK_TOGGLE, &dwTmp))
 		GetPropertySheet().SetScrollLockToggle(dwTmp);
 
-	if(REGLOAD(TEXT(REGVALUE_CURSOR_CONTROL), &dwTmp))
+	if(REGLOAD(REGVALUE_CURSOR_CONTROL, &dwTmp))
 		GetPropertySheet().SetJoystickCursorControl(dwTmp);
-	if(REGLOAD(TEXT(REGVALUE_AUTOFIRE), &dwTmp))
+	if(REGLOAD(REGVALUE_AUTOFIRE, &dwTmp))
 		GetPropertySheet().SetAutofire(dwTmp);
-	if(REGLOAD(TEXT(REGVALUE_SWAP_BUTTONS_0_AND_1), &dwTmp))
+	if(REGLOAD(REGVALUE_SWAP_BUTTONS_0_AND_1, &dwTmp))
 		GetPropertySheet().SetButtonsSwapState(dwTmp ? true : false);
-	if(REGLOAD(TEXT(REGVALUE_CENTERING_CONTROL), &dwTmp))
+	if(REGLOAD(REGVALUE_CENTERING_CONTROL, &dwTmp))
 		GetPropertySheet().SetJoystickCenteringControl(dwTmp);
 
-	if(REGLOAD(TEXT(REGVALUE_MOUSE_CROSSHAIR), &dwTmp))
+	if(REGLOAD(REGVALUE_MOUSE_CROSSHAIR, &dwTmp))
 		GetPropertySheet().SetMouseShowCrosshair(dwTmp);
-	if(REGLOAD(TEXT(REGVALUE_MOUSE_RESTRICT_TO_WINDOW), &dwTmp))
+	if(REGLOAD(REGVALUE_MOUSE_RESTRICT_TO_WINDOW, &dwTmp))
 		GetPropertySheet().SetMouseRestrictToWindow(dwTmp);
 
 	//
 
-	TCHAR szFilename[MAX_PATH];
+	char szFilename[MAX_PATH];
 
 	//
 
@@ -313,47 +308,71 @@ void LoadConfiguration(bool loadImages)
 		{
 			if (slot == SLOT3)
 			{
-				RegLoadString(TEXT(REG_CONFIG), TEXT(REGVALUE_UTHERNET_INTERFACE), 1, szFilename, MAX_PATH, TEXT(""));
+				RegLoadString(REG_CONFIG, REGVALUE_UTHERNET_INTERFACE, 1, szFilename, MAX_PATH, "");
 				// copy it to the new location
 				PCapBackend::SetRegistryInterface(slot, szFilename);
 
-				DWORD tfeEnabled;
-				REGLOAD_DEFAULT(TEXT(REGVALUE_UTHERNET_ACTIVE), &tfeEnabled, 0);
+				uint32_t tfeEnabled;
+				REGLOAD_DEFAULT(REGVALUE_UTHERNET_ACTIVE, &tfeEnabled, 0);
 				GetCardMgr().Insert(SLOT3, tfeEnabled ? CT_Uthernet : CT_Empty);
 			}
-			else if (slot == SLOT4 && REGLOAD(TEXT(REGVALUE_SLOT4), &dwTmp))
+			else if (slot == SLOT4 && REGLOAD(REGVALUE_SLOT4, &dwTmp))
 				GetCardMgr().Insert(SLOT4, (SS_CARDTYPE)dwTmp);
-			else if (slot == SLOT5 && REGLOAD(TEXT(REGVALUE_SLOT5), &dwTmp))
+			else if (slot == SLOT5 && REGLOAD(REGVALUE_SLOT5, &dwTmp))
 				GetCardMgr().Insert(SLOT5, (SS_CARDTYPE)dwTmp);
-			else if (slot == SLOT7 && REGLOAD(TEXT(REGVALUE_HDD_ENABLED), &dwTmp) && dwTmp == 1)	// GH#1015
+			else if (slot == SLOT7 && REGLOAD(REGVALUE_HDD_ENABLED, &dwTmp) && dwTmp == 1)	// GH#1015
 				GetCardMgr().Insert(SLOT7, CT_GenericHDD);
+		}
+	}
+
+	// Aux slot
+
+	{
+		std::string regSection = RegGetConfigSlotSection(SLOT_AUX);
+
+		if (RegLoadValue(regSection.c_str(), REGVALUE_CARD_TYPE, TRUE, &dwTmp))
+		{
+			SS_CARDTYPE type = (SS_CARDTYPE)dwTmp;
+			const bool noUpdateRegistry = false;
+			GetCardMgr().InsertAux(type, noUpdateRegistry);
+			SetExpansionMemType(type, noUpdateRegistry);
+
+			RegLoadValue(regSection.c_str(), REGVALUE_AUX_NUM_BANKS, TRUE, &dwTmp, kDefaultExMemoryBanksRealRW3);
+			SetRamWorksMemorySize(dwTmp, noUpdateRegistry);
+		}
+	}
+
+	if(REGLOAD(REGVALUE_SPKR_VOLUME, &dwTmp))
+		SpkrSetVolume(dwTmp, GetPropertySheet().GetVolumeMax());
+
+	if(REGLOAD(REGVALUE_MB_VOLUME, &dwTmp))
+		GetCardMgr().GetMockingboardCardMgr().SetVolume(dwTmp, GetPropertySheet().GetVolumeMax());
+
+	// Load save-state pathname *before* inserting any harddisk/disk images (for both init & reinit cases)
+	// NB. inserting harddisk/disk can change snapshot pathname
+	RegLoadString(REG_CONFIG, REGVALUE_SAVESTATE_FILENAME, 1, szFilename, MAX_PATH, "");	// Can be pathname or just filename
+	Snapshot_SetFilename(szFilename);	// If not in Registry than default will be used (ie. g_sCurrentDir + default filename)
+
+	//
+
+	RegLoadString(REG_PREFS, REGVALUE_PREF_HDV_START_DIR, 1, szFilename, MAX_PATH, "");
+	if (szFilename[0] == '\0')
+		GetCurrentDirectory(sizeof(szFilename), szFilename);
+	SetCurrentImageDir(szFilename);
+
+	for (UINT slot = SLOT1; slot <= SLOT7; slot++)
+	{
+		if (loadImages && GetCardMgr().QuerySlot(slot) == CT_GenericHDD)
+		{
+			for (UINT i = 0; i < NUM_HARDDISKS; i++)
+				dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(slot)).LoadLastDiskImage(i);
 		}
 	}
 
 	//
 
-	// Load save-state pathname *before* inserting any harddisk/disk images (for both init & reinit cases)
-	// NB. inserting harddisk/disk can change snapshot pathname
-	RegLoadString(TEXT(REG_CONFIG), TEXT(REGVALUE_SAVESTATE_FILENAME), 1, szFilename, MAX_PATH, TEXT(""));	// Can be pathname or just filename
-	Snapshot_SetFilename(szFilename);	// If not in Registry than default will be used (ie. g_sCurrentDir + default filename)
-
-	//
-
-	RegLoadString(TEXT(REG_PREFS), TEXT(REGVALUE_PREF_HDV_START_DIR), 1, szFilename, MAX_PATH, TEXT(""));
-	if (szFilename[0] == '\0')
-		GetCurrentDirectory(sizeof(szFilename), szFilename);
-	SetCurrentImageDir(szFilename);
-
-	if (loadImages && GetCardMgr().QuerySlot(SLOT7) == CT_GenericHDD)
-	{
-		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).LoadLastDiskImage(HARDDISK_1);
-		dynamic_cast<HarddiskInterfaceCard&>(GetCardMgr().GetRef(SLOT7)).LoadLastDiskImage(HARDDISK_2);
-	}
-
-	//
-
 	// Current/Starting Dir is the "root" of where the user keeps their disk images
-	RegLoadString(TEXT(REG_PREFS), TEXT(REGVALUE_PREF_START_DIR), 1, szFilename, MAX_PATH, TEXT(""));
+	RegLoadString(REG_PREFS, REGVALUE_PREF_START_DIR, 1, szFilename, MAX_PATH, "");
 	if (szFilename[0] == '\0')
 		GetCurrentDirectory(sizeof(szFilename), szFilename);
 	SetCurrentImageDir(szFilename);
@@ -362,8 +381,8 @@ void LoadConfiguration(bool loadImages)
 		GetCardMgr().GetDisk2CardMgr().LoadLastDiskImage();
 
 	// Do this after populating the slots with Disk II controller(s)
-	DWORD dwEnhanceDisk;
-	REGLOAD_DEFAULT(TEXT(REGVALUE_ENHANCE_DISK_SPEED), &dwEnhanceDisk, 1);
+	uint32_t dwEnhanceDisk;
+	REGLOAD_DEFAULT(REGVALUE_ENHANCE_DISK_SPEED, &dwEnhanceDisk, 1);
 	GetCardMgr().GetDisk2CardMgr().SetEnhanceDisk(dwEnhanceDisk ? true : false);
 
 	//
@@ -373,10 +392,10 @@ void LoadConfiguration(bool loadImages)
 
 	//
 
-	if (REGLOAD(TEXT(REGVALUE_WINDOW_SCALE), &dwTmp))
+	if (REGLOAD(REGVALUE_WINDOW_SCALE, &dwTmp))
 		GetFrame().SetViewportScale(dwTmp);
 
-	if (REGLOAD(TEXT(REGVALUE_CONFIRM_REBOOT), &dwTmp))
+	if (REGLOAD(REGVALUE_CONFIRM_REBOOT, &dwTmp))
 		GetFrame().g_bConfirmReboot = dwTmp;
 }
 
@@ -490,29 +509,33 @@ void InsertHardDisks(const UINT slot, LPCSTR szImageName_harddisk[NUM_HARDDISKS]
 {
 	_ASSERT(slot == 5 || slot == 7);
 
-	if (!szImageName_harddisk[HARDDISK_1] && !szImageName_harddisk[HARDDISK_2])
+	// If no HDDs then just return (and don't insert an HDC into this slot)
+	bool res = true;
+	for (UINT i = 0; i < NUM_HARDDISKS; i++)
+		res &= szImageName_harddisk[i] == NULL;
+	if (res)
 		return;
 
 	if (GetCardMgr().QuerySlot(slot) != CT_GenericHDD)
 		GetCardMgr().Insert(slot, CT_GenericHDD);	// Enable the Harddisk controller card
 
-	bool bRes = true;
-
-	if (szImageName_harddisk[HARDDISK_1])
+	res = true;
+	for (UINT i = 0; i < NUM_HARDDISKS; i++)
 	{
-		bRes = DoHardDiskInsert(slot, HARDDISK_1, szImageName_harddisk[HARDDISK_1]);
-		LogFileOutput("Init: DoHardDiskInsert(HDD1), res=%d\n", bRes);
-		GetFrame().FrameRefreshStatus(DRAW_LEDS | DRAW_DISK_STATUS);	// harddisk activity LED
-		bBoot = true;
+		if (szImageName_harddisk[i])
+		{
+			res &= DoHardDiskInsert(slot, i, szImageName_harddisk[i]);
+			LogFileOutput("Init: DoHardDiskInsert(HDD-%d), res=%d\n", i, res);
+
+			if (i == HARDDISK_1)
+			{
+				GetFrame().FrameRefreshStatus(DRAW_LEDS | DRAW_DISK_STATUS);	// harddisk activity LED
+				bBoot = true;
+			}
+		}
 	}
 
-	if (szImageName_harddisk[HARDDISK_2])
-	{
-		bRes &= DoHardDiskInsert(slot, HARDDISK_2, szImageName_harddisk[HARDDISK_2]);
-		LogFileOutput("Init: DoHardDiskInsert(HDD2), res=%d\n", bRes);
-	}
-
-	if (!bRes)
+	if (!res)
 		GetFrame().FrameMessageBox("Failed to insert harddisk(s) - see log file", "Warning", MB_ICONASTERISK | MB_OK);
 }
 
@@ -551,14 +574,14 @@ void GetAppleWindowTitle()
 		g_pAppTitle += " (S6-13) ";
 
 	if (g_hCustomRomF8 != INVALID_HANDLE_VALUE)
-		g_pAppTitle += TEXT(" (custom rom)");
-	else if (GetPropertySheet().GetTheFreezesF8Rom() && IS_APPLE2)
-		g_pAppTitle += TEXT(" (The Freeze's non-autostart F8 rom)");
+		g_pAppTitle += " (custom rom)";
+	else if (GetPropertySheet().GetTheFreezesF8Rom() && IsApple2PlusOrClone(GetApple2Type()))
+		g_pAppTitle += " (The Freeze's non-autostart F8 rom)";
 
 	switch (g_nAppMode)
 	{
-	case MODE_PAUSED: g_pAppTitle += std::string(TEXT(" [")) + TITLE_PAUSED + TEXT("]"); break;
-	case MODE_STEPPING: g_pAppTitle += std::string(TEXT(" [")) + TITLE_STEPPING + TEXT("]"); break;
+	case MODE_PAUSED: g_pAppTitle += std::string(" [") + TITLE_PAUSED + "]"; break;
+	case MODE_STEPPING: g_pAppTitle += std::string(" [") + TITLE_STEPPING + "]"; break;
 	}
 }
 
@@ -608,8 +631,11 @@ void ResetMachineState()
  // todo: consolidate CtrlReset() and ResetMachineState()
 void CtrlReset()
 {
-	if (!IS_APPLE2)
+	if (IsAppleIIeOrAbove(GetApple2Type()))
 	{
+		// NB. RamWorks III manual (v1.41, pg 45):
+		// "The bank select register is initialized to zero on a power-up, but not after a reset."
+
 		// For A][ & A][+, reset doesn't reset the LC switches (UTAII:5-29)
 		// TODO: What about Saturn cards? Presumably the same as the A][ & A][+ slot0 LC?
 		MemResetPaging();
