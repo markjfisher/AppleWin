@@ -144,6 +144,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 		COLOR_CUSTOM_01,   // FG_AY8913_EVEN
 		Y8,                // FG_AY8913_ODD
 		R8,                // FG_AY8913_FUNCTION
+		R8,                // FG_INFO_ADDRESS_SY6522_AY8913_BAD
 	};
 
 
@@ -202,7 +203,7 @@ static void _SetupColorRamp(const int iPrimary, int & iColor_)
 		int nR = bR ? nC : 0;
 		int nG = bG ? nC : 0;
 		int nB = bB ? nC : 0;
-		DWORD nColor = RGB(nR, nG, nB);
+		uint32_t nColor = RGB(nR, nG, nB);
 		g_aColorPalette[iColor_] = nColor;
 #if DEBUG_COLOR_RAMP
 		strRamp += StrFormat("RGB(%3d,%3d,%3d), ", nR, nG, nB);

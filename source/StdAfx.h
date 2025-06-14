@@ -1,6 +1,8 @@
-#ifdef _MSC_VER
+#ifdef _WIN32
 
-#include <tchar.h>
+#ifdef __MINGW32__
+#define STRSAFE_NO_DEPRECATE
+#endif
 
 #include <crtdbg.h>
 // <strmif.h> has the correct IReferenceClock definition that works for both x86 and x64,
@@ -15,15 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#if _MSC_VER >= 1600	// <stdint.h> supported from VS2010 (cl.exe v16.00)
 #include <stdint.h> // cleanup WORD DWORD -> uint16_t uint32_t
-#else
-typedef INT8 int8_t;
-typedef UINT8 uint8_t;
-typedef UINT16 uint16_t;
-typedef UINT32 uint32_t;
-typedef UINT64 uint64_t;
-#endif
 
 #include <windows.h>
 #include <winuser.h> // WM_MOUSEWHEEL
@@ -33,6 +27,7 @@ typedef UINT64 uint64_t;
 #include <ddraw.h>
 #include <htmlhelp.h>
 #include <assert.h>
+#include <winsock.h>
 
 #include <algorithm>
 #include <map>
@@ -50,22 +45,17 @@ typedef UINT64 uint64_t;
 #define SM_CXPADDEDBORDER 92
 #endif
 
+#ifndef __MINGW32__ 
 #define USE_SPEECH_API
-
-#if _MSC_VER < 1900
-#ifdef _WIN64
-#define SIZE_T_FMT "llu"
-#define PTRDIFF_T_FMT "lld"
-#else
-#define SIZE_T_FMT "lu"
-#define PTRDIFF_T_FMT "ld"
 #endif
+
+#ifdef __MINGW32__
+#define SIZE_T_FMT "llu"
 #else
 #define SIZE_T_FMT "zu"
-#define PTRDIFF_T_FMT "td"
 #endif
 
-#else
+#else // !_WIN32
 
 #include <cmath>
 #include <map>
@@ -77,12 +67,14 @@ typedef UINT64 uint64_t;
 #include <string>
 #include <vector>
 #include <cassert>
+#include <memory>
 
+// NOTE: this is a local version of windows.h with aliases for windows functions when not
+//       building in a windows environment (!_WIN32)
 #include "windows.h"
 
 //#define USE_SPEECH_API
 
 #define SIZE_T_FMT "zu"
-#define PTRDIFF_T_FMT "td"
 
-#endif
+#endif // _WIN32

@@ -274,6 +274,12 @@
     <ClCompile Include="source\MockingboardCardManager.cpp">
       <Filter>Source Files\Emulator</Filter>
     </ClCompile>
+    <ClCompile Include="source\Windows\DXSoundBuffer.cpp">
+      <Filter>Source Files\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="source\ProDOS_Utils.cpp">
+      <Filter>Source Files\Emulator</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\CommonVICE\6510core.h">
@@ -423,6 +429,9 @@
     <ClInclude Include="source\ParallelPrinter.h">
       <Filter>Source Files\Emulator</Filter>
     </ClInclude>
+    <ClInclude Include="source\ProDOS_FileSystem.h">
+      <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
     <ClInclude Include="source\Tfe\Pcap.h">
       <Filter>Source Files\Uthernet</Filter>
     </ClInclude>
@@ -494,9 +503,6 @@
     </ClInclude>
     <ClInclude Include="source\z80emu.h">
       <Filter>Source Files\Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="source\Debugger\DebugDefs.h">
-      <Filter>Source Files\Debugger</Filter>
     </ClInclude>
     <ClInclude Include="source\Debugger\Util_MemoryTextFile.h">
       <Filter>Source Files\Debugger</Filter>
@@ -616,6 +622,18 @@
       <Filter>Source Files\Emulator</Filter>
     </ClInclude>
     <ClInclude Include="source\MockingboardDefs.h">
+      <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="source\MemoryDefs.h">
+      <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="source\SoundBuffer.h">
+      <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Windows\DXSoundBuffer.h">
+      <Filter>Source Files\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="source\ProDOS_Utils.h">
       <Filter>Source Files\Emulator</Filter>
     </ClInclude>
   </ItemGroup>
@@ -803,6 +821,21 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="resource\Disk2-13sector.rom">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resource\Apple2_Video.rom">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resource\Apple2e_Enhanced_Video.rom">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resource\HDC-SmartPort.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resource\Hddrvr-v2.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resource\spoverslip.bin">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

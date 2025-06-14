@@ -30,7 +30,7 @@ enum VideoType_e
 	, VT_DEFAULT = VT_COLOR_TV
 };
 
-extern TCHAR g_aVideoChoices[];
+extern char g_aVideoChoices[];
 
 enum VideoStyle_e
 {
@@ -48,19 +48,24 @@ enum VideoRefreshRate_e
 };
 
 enum VideoFlag_e
-{
-	VF_80COL  = 0x00000001,
-	VF_DHIRES = 0x00000002,
-	VF_HIRES  = 0x00000004,
-	VF_80STORE= 0x00000008,
-	VF_MIXED  = 0x00000010,
-	VF_PAGE2  = 0x00000020,		// Text or Hires
-	VF_TEXT   = 0x00000040,
-	VF_SHR    = 0x00000080,		// For VidHD's support for IIgs SHR video modes
-	VF_PAGE0  = 0x00000100,		// Pseudo Page $00 (Poorman's heatmap)
-	VF_PAGE3  = 0x00000200,		// Pseudo Page $60 (Poorman's heatmap)
-	VF_PAGE4  = 0x00000400,		// Pseudo Page $80 (Poorman's heatmap)
-	VF_PAGE5  = 0x00000800,		// Pseudo Page $A0 (Poorman's heatmap)
+{	                   //  76543210
+	VF_80COL           = 0x00000001,
+	VF_DHIRES          = 0x00000002,
+	VF_HIRES           = 0x00000004,
+	VF_80STORE         = 0x00000008,
+	VF_MIXED           = 0x00000010,
+	VF_PAGE2           = 0x00000020,		// Text or Hires
+	VF_TEXT            = 0x00000040,
+	VF_SHR             = 0x00000080,		// For VidHD's support for IIgs SHR video modes
+	VF_80COL_AUX_EMPTY = 0x00000100,		// For 80COL when aux slot is empty (returns floating bus)
+
+	VF_PAGE0           = 0x10000000,		// Debugger: Pseudo Page $00 (Poorman's heatmap)
+	VF_PAGE3           = 0x20000000,		// Debugger: Pseudo Page $60 (Poorman's heatmap)
+	VF_PAGE4           = 0x40000000,		// Debugger: Pseudo Page $80 (Poorman's heatmap)
+	VF_PAGE5           = 0x80000000,		// Debugger: Pseudo Page $A0 (Poorman's heatmap)
+	VF_PAGE6           = 0x00000200,		// Debugger: Pseudo Page $C0 (Poorman's heatmap) LC Bank 1/2
+	VF_PAGE7           = 0x00000400,		// Debugger: Pseudo Page $D0 (Poorman's heatmap) LC Bank 2/-
+	VF_PAGE8           = 0x00000800			// Debugger: Psuedo Page $E0 (Poorman's heatmap) LC Bank RAM
 };
 
 enum AppleFont_e
@@ -222,9 +227,9 @@ public:
 	void ClearSHRResidue(void);
 
 	enum VideoScanner_e {VS_FullAddr, VS_PartialAddrV, VS_PartialAddrH};
-	WORD VideoGetScannerAddress(DWORD nCycles, VideoScanner_e videoScannerAddr = VS_FullAddr);
-	bool VideoGetVblBarEx(const DWORD dwCyclesThisFrame);
-	bool VideoGetVblBar(const DWORD uExecutedCycles);
+	WORD VideoGetScannerAddress(uint32_t nCycles, VideoScanner_e videoScannerAddr = VS_FullAddr);
+	bool VideoGetVblBarEx(const uint32_t dwCyclesThisFrame);
+	bool VideoGetVblBar(const uint32_t uExecutedCycles);
 
 	bool VideoGetSW80COL(void);
 	bool VideoGetSWDHIRES(void);
@@ -234,6 +239,7 @@ public:
 	bool VideoGetSWPAGE2(void);
 	bool VideoGetSWTEXT(void);
 	bool VideoGetSWAltCharSet(void);
+	bool VideoGet80COLAUXEMPTY(void);
 
 	void VideoSaveSnapshot(class YamlSaveHelper& yamlSaveHelper);
 	void VideoLoadSnapshot(class YamlLoadHelper& yamlLoadHelper, UINT version);
@@ -289,7 +295,7 @@ private:
 
 	int g_nAltCharSetOffset;
 	uint32_t g_uVideoMode;		// Current Video Mode (this is the last set one as it may change mid-scan line!)
-	DWORD g_eVideoType;			// saved to Registry
+	uint32_t g_eVideoType;			// saved to Registry
 	VideoStyle_e g_eVideoStyle;
 	bool g_bVideoScannerNTSC;	// NTSC video scanning (or PAL)
 	COLORREF g_nMonochromeRGB;	// saved to Registry

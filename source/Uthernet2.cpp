@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "W5100.h"
 #include "Registry.h"
 
-
 // Virtual DNS
 // Virtual DNS is an extension to the W5100
 // It enables DNS resolution by setting P3 = 1 for IP / TCP and UDP
@@ -44,9 +43,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // in the checks below we allow both in all cases
 // (errno == SOCK_EINPROGRESS || errno == SOCK_EWOULDBLOCK)
 // this works, bu we could instead define 2 functions and check only the correct one
-#ifdef _MSC_VER
+#ifdef _WIN32
 
+#ifndef _SSIZE_T_DEFINED
 typedef int ssize_t;
+#endif
 typedef int socklen_t;
 
 #define sock_error() WSAGetLastError()
@@ -198,7 +199,7 @@ void Socket::clearFD()
 {
     if (myFD != INVALID_SOCKET)
     {
-#ifdef _MSC_VER
+#ifdef _WIN32
         closesocket(myFD);
 #else
         close(myFD);
@@ -269,13 +270,13 @@ void Socket::process()
 {
     if (myFD != INVALID_SOCKET && mySocketStatus == W5100_SN_SR_SOCK_SYNSENT)
     {
-#ifdef _MSC_VER
+#ifdef _WIN32
         FD_SET writefds, exceptfds;
         FD_ZERO(&writefds);
         FD_ZERO(&exceptfds);
         FD_SET(myFD, &writefds);
         FD_SET(myFD, &exceptfds);
-        const timeval timeout = {0, 0};
+        timeval timeout = {0, 0}; // non const for old versions of msys2 / mxe
         if (select(0, NULL, &writefds, &exceptfds, &timeout) > 0)
 #else
         pollfd pfd = {.fd = myFD, .events = POLLOUT};
@@ -369,7 +370,7 @@ const std::string& Uthernet2::GetSnapshotCardName()
 
 Uthernet2::Uthernet2(UINT slot) : NetworkCard(CT_Uthernet2, slot)
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
     WSADATA wsaData;
     myWSAStartup = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (myWSAStartup)
@@ -385,7 +386,7 @@ Uthernet2::Uthernet2(UINT slot) : NetworkCard(CT_Uthernet2, slot)
 
 Uthernet2::~Uthernet2()
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
     if (myWSAStartup == 0)
     {
         WSACleanup();
@@ -918,7 +919,7 @@ void Uthernet2::openSystemSocket(const size_t i, const int type, const int proto
     }
     else
     {
-#ifdef _MSC_VER
+#ifdef _WIN32
         u_long on = 1;
         const int res = ioctlsocket(fd, FIONBIO, &on);
 #else
@@ -1471,7 +1472,15 @@ BYTE __stdcall u2_C0(WORD programcounter, WORD address, BYTE write, BYTE value, 
 
 void Uthernet2::InitializeIO(LPBYTE pCxRomPeripheral)
 {
-    RegisterIoHandler(m_slot, u2_C0, u2_C0, nullptr, nullptr, this, nullptr);
+    const std::string interfaceName = PCapBackend::GetRegistryInterface(m_slot);
+    myNetworkBackend = GetFrame().CreateNetworkBackend(interfaceName);
+    if (!myNetworkBackend->isValid())
+    {
+        // Interface doesn't exist or user picked an interface that isn't Ethernet!
+        GetFrame().FrameMessageBox("Uthernet II interface isn't valid!\nReconfigure the Interface via 'Ethernet Settings'.", "Uthernet Interface", MB_ICONEXCLAMATION | MB_SETFOREGROUND);
+    }
+
+    RegisterIoHandler(m_slot, u2_C0, u2_C0, IO_Null, IO_Null, this, nullptr);
 }
 
 void Uthernet2::getMACAddress(const uint32_t address, const MACAddress * & mac)
@@ -1660,7 +1669,7 @@ bool Uthernet2::GetRegistryVirtualDNS(UINT slot)
     // as it is backward compatible
     // (except for the initial value of PTIMER which is anyway never used)
 
-    DWORD enabled = 1;
+    uint32_t enabled = 1;
     RegLoadValue(regSection.c_str(), REGVALUE_UTHERNET_VIRTUAL_DNS, TRUE, &enabled);
     return enabled != 0;
 }
