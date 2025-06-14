@@ -412,7 +412,7 @@ void Uthernet1::tfe_sideeffects_write_pp(WORD ppaddress, int oddaddress)
     case TFE_PP_ADDR_LOG_ADDR_FILTER+6:
 		{
 			unsigned int pos = 8 * (ppaddress - TFE_PP_ADDR_LOG_ADDR_FILTER + oddaddress);
-			DWORD *p = (pos < 32) ? &tfe_hash_mask[0] : &tfe_hash_mask[1];
+			uint32_t *p = (pos < 32) ? &tfe_hash_mask[0] : &tfe_hash_mask[1];
 
 			*p &= ~(0xFF << pos); /* clear out relevant bits */
 			*p |= GET_PP_8(ppaddress+oddaddress) << pos;
@@ -678,8 +678,15 @@ void REGPARM2 Uthernet1::tfe_store(WORD ioaddress, BYTE byte)
         SET_TFE_16(TFE_ADDR_PP_DATA, GET_PP_16(tfe_packetpage_ptr));
         /* FALL THROUGH */
 
-    default:
+    case TFE_ADDR_PP_PTR:
+    case TFE_ADDR_PP_PTR+1:
+
         SET_TFE_8(ioaddress, byte);
+        break;
+
+    default:
+        /* not explicitly handled */
+        assert(false);
     }
 
 #ifdef TFE_DEBUG_STORE
@@ -1015,10 +1022,13 @@ void Uthernet1::InitializeIO(LPBYTE pCxRomPeripheral)
     // first clean the old one, as 2 backends might not be able to exist at the same time
     networkBackend.reset();
     networkBackend = GetFrame().CreateNetworkBackend(interfaceName);
-    if (networkBackend->isValid())
+    if (!networkBackend->isValid())
     {
-        RegisterIoHandler(m_slot, TfeIo, TfeIo, TfeIoCxxx, TfeIoCxxx, this, NULL);
+        // Interface doesn't exist or user picked an interface that isn't Ethernet!
+        GetFrame().FrameMessageBox("Uthernet interface isn't valid!\nReconfigure the Interface via 'Ethernet Settings'.", "Uthernet Interface", MB_ICONEXCLAMATION | MB_SETFOREGROUND);
     }
+
+    RegisterIoHandler(m_slot, TfeIo, TfeIo, TfeIoCxxx, TfeIoCxxx, this, NULL);
 }
 
 void Uthernet1::Reset(const bool powerCycle)

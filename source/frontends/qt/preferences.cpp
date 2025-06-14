@@ -9,13 +9,16 @@
 
 #include <QFileDialog>
 #include <QColorDialog>
-#include <QGamepadManager>
 #include <QSettings>
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include <QGamepadManager>
+#endif
 
 namespace
 {
 
-    int addDiskItem(QComboBox *disk, const QString & item)
+    int addDiskItem(QComboBox *disk, const QString &item)
     {
         if (!item.isEmpty())
         {
@@ -39,7 +42,7 @@ namespace
         return -1;
     }
 
-    void checkDuplicates(const std::vector<QComboBox *> & disks, const size_t id, const int new_selection)
+    void checkDuplicates(const std::vector<QComboBox *> &disks, const size_t id, const int new_selection)
     {
         if (new_selection >= 1)
         {
@@ -58,7 +61,7 @@ namespace
         }
     }
 
-    void initialiseDisks(const std::vector<QComboBox *> & disks, const std::vector<QString> & data)
+    void initialiseDisks(const std::vector<QComboBox *> &disks, const std::vector<QString> &data)
     {
         // share the same model for all disks in a group
         for (size_t i = 1; i < disks.size(); ++i)
@@ -71,7 +74,7 @@ namespace
         }
     }
 
-    void fillData(const std::vector<QComboBox *> & disks, std::vector<QString> & data)
+    void fillData(const std::vector<QComboBox *> &disks, std::vector<QString> &data)
     {
         data.resize(disks.size());
         for (size_t i = 0; i < disks.size(); ++i)
@@ -83,32 +86,32 @@ namespace
         }
     }
 
-    void processSettingsGroup(QSettings & settings, QTreeWidgetItem * item)
+    void processSettingsGroup(QSettings &settings, QTreeWidgetItem *item)
     {
         QList<QTreeWidgetItem *> items;
 
         // first the leaves
         const QStringList children = settings.childKeys();
-        for (const auto & child : children)
+        for (const auto &child : children)
         {
             QStringList columns;
-            columns.append(child); // the name
+            columns.append(child);                            // the name
             columns.append(settings.value(child).toString()); // the value
 
-            QTreeWidgetItem * newItem = new QTreeWidgetItem(item, columns);
+            QTreeWidgetItem *newItem = new QTreeWidgetItem(item, columns);
             items.append(newItem);
         }
 
         // then the subtrees
         const QStringList groups = settings.childGroups();
-        for (const auto & group : groups)
+        for (const auto &group : groups)
         {
             settings.beginGroup(group);
 
             QStringList columns;
             columns.append(group); // the name
 
-            QTreeWidgetItem * newItem = new QTreeWidgetItem(item, columns);
+            QTreeWidgetItem *newItem = new QTreeWidgetItem(item, columns);
             processSettingsGroup(settings, newItem); // process subtree
             items.append(newItem);
 
@@ -118,15 +121,14 @@ namespace
         item->addChildren(items);
     }
 
-    const std::vector<eApple2Type> computerTypes = {A2TYPE_APPLE2, A2TYPE_APPLE2PLUS, A2TYPE_APPLE2JPLUS, A2TYPE_APPLE2E,
-                                                    A2TYPE_APPLE2EENHANCED, A2TYPE_PRAVETS82, A2TYPE_PRAVETS8M, A2TYPE_PRAVETS8A,
-                                                    A2TYPE_BASE64A, A2TYPE_TK30002E};
+    const std::vector<eApple2Type> computerTypes = {
+        A2TYPE_APPLE2,    A2TYPE_APPLE2PLUS, A2TYPE_APPLE2JPLUS, A2TYPE_APPLE2E, A2TYPE_APPLE2EENHANCED,
+        A2TYPE_PRAVETS82, A2TYPE_PRAVETS8M,  A2TYPE_PRAVETS8A,   A2TYPE_BASE64A, A2TYPE_TK30002E};
     const std::vector<SS_CARDTYPE> cardsInSlot3 = {CT_Empty, CT_Uthernet, CT_Uthernet2, CT_VidHD};
     const std::vector<SS_CARDTYPE> cardsInSlot4 = {CT_Empty, CT_MouseInterface, CT_MockingboardC, CT_Phasor};
     const std::vector<SS_CARDTYPE> cardsInSlot5 = {CT_Empty, CT_Z80, CT_MockingboardC, CT_SAM};
 
-    template<class T>
-    int getIndexInList(const std::vector<T> & values, const T value, const int defaultValue)
+    template <class T> int getIndexInList(const std::vector<T> &values, const T value, const int defaultValue)
     {
         const auto it = std::find(values.begin(), values.end(), value);
         if (it != values.end())
@@ -139,11 +141,11 @@ namespace
         }
     }
 
-}
+} // namespace
 
-Preferences::Preferences(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::Preferences)
+Preferences::Preferences(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::Preferences)
 {
     ui->setupUi(this);
 
@@ -159,7 +161,7 @@ Preferences::~Preferences()
     delete ui;
 }
 
-void Preferences::setup(const PreferenceData & data, QSettings & settings)
+void Preferences::setup(const PreferenceData &data, QSettings &settings)
 {
     populateJoysticks();
     setData(data);
@@ -171,7 +173,8 @@ void Preferences::populateJoysticks()
     ui->joystick->clear();
     ui->joystick->addItem("None"); // index = 0
 
-    QGamepadManager * manager = QGamepadManager::instance();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QGamepadManager *manager = QGamepadManager::instance();
     const QList<int> gamepads = manager->connectedGamepads();
 
     for (int id : gamepads)
@@ -179,17 +182,18 @@ void Preferences::populateJoysticks()
         const QString name = manager->gamepadName(id);
         ui->joystick->addItem(name);
     }
+#endif
 }
 
-void Preferences::setSettings(QSettings & settings)
+void Preferences::setSettings(QSettings &settings)
 {
     ui->registryTree->clear();
 
     QStringList columns;
     columns.append(QString::fromUtf8("Registry")); // the name
-    columns.append(settings.fileName()); // the value
+    columns.append(settings.fileName());           // the value
 
-    QTreeWidgetItem * newItem = new QTreeWidgetItem(ui->registryTree, columns);
+    QTreeWidgetItem *newItem = new QTreeWidgetItem(ui->registryTree, columns);
     processSettingsGroup(settings, newItem);
 
     ui->registryTree->addTopLevelItem(newItem);
@@ -197,7 +201,7 @@ void Preferences::setSettings(QSettings & settings)
     ui->registryTree->resizeColumnToContents(0);
 }
 
-void Preferences::setData(const PreferenceData & data)
+void Preferences::setData(const PreferenceData &data)
 {
     ui->lc_0->setCurrentIndex(data.options.slot0Card);
     ui->timer_gap->setValue(data.options.msGap);
@@ -287,7 +291,7 @@ PreferenceData Preferences::getData() const
     return data;
 }
 
-void Preferences::browseDisk(const std::vector<QComboBox *> & vdisks, const size_t id)
+void Preferences::browseDisk(const std::vector<QComboBox *> &vdisks, const size_t id)
 {
     QFileDialog diskFileDialog(this);
     diskFileDialog.setFileMode(QFileDialog::AnyFile);
@@ -303,7 +307,7 @@ void Preferences::browseDisk(const std::vector<QComboBox *> & vdisks, const size
         QStringList files = diskFileDialog.selectedFiles();
         if (files.size() == 1)
         {
-            const QString & filename = files[0];
+            const QString &filename = files[0];
             const int selection = addDiskItem(vdisks[id], filename);
             // and now make sure there are no duplicates
             checkDuplicates(vdisks, id, selection);
@@ -384,5 +388,4 @@ void Preferences::on_browse_pf_clicked()
     {
         ui->printer_filename->setText(name);
     }
-
 }

@@ -106,6 +106,9 @@
     <ClCompile Include="source\Configuration\PageSound.cpp">
       <Filter>Source Files\Configuration</Filter>
     </ClCompile>
+    <ClCompile Include="source\ProDOS_Utils.cpp">
+      <Filter>Source Files\Emulator</Filter>
+    </ClCompile>
     <ClCompile Include="source\ParallelPrinter.cpp">
       <Filter>Source Files\Emulator</Filter>
     </ClCompile>
@@ -273,6 +276,9 @@
     </ClCompile>
     <ClCompile Include="source\MockingboardCardManager.cpp">
       <Filter>Source Files\Emulator</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Windows\DXSoundBuffer.cpp">
+      <Filter>Source Files\Windows</Filter>
     </ClCompile>
     <ClCompile Include="source\SmartPortOverSlip.cpp" />
     <ClCompile Include="source\DummySmartport.cpp" />
@@ -445,6 +451,12 @@
     <ClInclude Include="source\ParallelPrinter.h">
       <Filter>Source Files\Emulator</Filter>
     </ClInclude>
+    <ClInclude Include="source\ProDOS_Utils.h">
+      <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="source\ProDOS_FileSystem.h">
+      <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
     <ClInclude Include="source\Tfe\Pcap.h">
       <Filter>Source Files\Uthernet</Filter>
     </ClInclude>
@@ -516,9 +528,6 @@
     </ClInclude>
     <ClInclude Include="source\z80emu.h">
       <Filter>Source Files\Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="source\Debugger\DebugDefs.h">
-      <Filter>Source Files\Debugger</Filter>
     </ClInclude>
     <ClInclude Include="source\Debugger\Util_MemoryTextFile.h">
       <Filter>Source Files\Debugger</Filter>
@@ -639,6 +648,15 @@
     </ClInclude>
     <ClInclude Include="source\MockingboardDefs.h">
       <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="source\MemoryDefs.h">
+      <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="source\SoundBuffer.h">
+      <Filter>Source Files\Emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Windows\DXSoundBuffer.h">
+      <Filter>Source Files\Windows</Filter>
     </ClInclude>
     <ClInclude Include="source\SmartPortOverSlip.h" />
     <ClInclude Include="source\DummySmartport.h" />

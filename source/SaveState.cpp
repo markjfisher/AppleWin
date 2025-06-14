@@ -72,9 +72,24 @@ static YamlHelper yamlHelper;
 
 #define UNIT_SLOTS_VER 1
 
-#define UNIT_GAME_IO_CONNECTOR_VER 1
+// See CopyProtectionDongle.cppS
+#define UNIT_GAME_IO_CONNECTOR_VER 3
 
 #define UNIT_MISC_VER 1
+
+//-----------------------------------------------------------------------------
+
+static bool g_ignoreHdcFirmware = false;
+
+bool Snapshot_GetIgnoreHdcFirmware()
+{
+	return g_ignoreHdcFirmware;
+}
+
+void Snapshot_SetIgnoreHdcFirmware(const bool ignoreHdcFirmware)
+{
+	g_ignoreHdcFirmware = ignoreHdcFirmware;
+}
 
 //-----------------------------------------------------------------------------
 
@@ -341,7 +356,7 @@ static void ParseUnit(void)
 	}
 	else if (unit == GetSnapshotUnitGameIOConnectorName())
 	{
-		CopyProtectionDongleLoadSnapshot(yamlLoadHelper, unitVersion);
+		CopyProtectionDongleLoadSnapshot(yamlLoadHelper, unitVersion, UNIT_GAME_IO_CONNECTOR_VER);
 	}
 	else if (unit == GetSnapshotUnitMiscName())
 	{
@@ -388,7 +403,10 @@ static void Snapshot_LoadState_v2(void)
 		GetVideo().SetVidHD(false);			// Set true later only if VidHDCard is instantiated
 		GetVideo().VideoResetState();
 		GetVideo().SetVideoRefreshRate(VR_60HZ);	// Default to 60Hz as older save-states won't contain refresh rate
-		GetCardMgr().GetMockingboardCardMgr().InitializeForLoadingSnapshot();	// GH#609
+
+		MockingboardCardManager &mockingboardCardManager = GetCardMgr().GetMockingboardCardMgr();
+		mockingboardCardManager.InitializeForLoadingSnapshot(); // GH#609
+
 #ifdef USE_SPEECH_API
 		g_Speech.Reset();
 #endif
@@ -402,7 +420,10 @@ static void Snapshot_LoadState_v2(void)
 				throw std::runtime_error("Unknown top-level scalar: " + scalar);
 		}
 
-		GetCardMgr().GetMockingboardCardMgr().SetCumulativeCycles();
+		// Refresh the volume of any new Mockingboard card (and its SSI263 or SC01 chips)
+		mockingboardCardManager.SetVolume(mockingboardCardManager.GetVolume(), GetPropertySheet().GetVolumeMax());
+		mockingboardCardManager.SetCumulativeCycles();
+
 		frame.SetLoadedSaveStateFlag(true);
 
 		// NB. The following disparity should be resolved:
@@ -429,7 +450,7 @@ static void Snapshot_LoadState_v2(void)
 	{
 		frame.FrameMessageBox(
 					szMessage.what(),
-					TEXT("Load State"),
+					"Load State",
 					MB_ICONEXCLAMATION | MB_SETFOREGROUND);
 
 		if (restart)
@@ -449,7 +470,7 @@ void Snapshot_LoadState()
 		GetFrame().FrameMessageBox(
 					"Save-state v1 no longer supported.\n"
 					"Please load using AppleWin 1.27, and re-save as a v2 state file.",
-					TEXT("Load State"),
+					"Load State",
 					MB_ICONEXCLAMATION | MB_SETFOREGROUND);
 
 		return;
@@ -516,7 +537,7 @@ void Snapshot_SaveState(void)
 	{
 		GetFrame().FrameMessageBox(
 					szMessage.what(),
-					TEXT("Save State"),
+					"Save State",
 					MB_ICONEXCLAMATION | MB_SETFOREGROUND);
 	}
 }

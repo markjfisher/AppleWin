@@ -34,6 +34,8 @@ Most of the debugger now works (in the ImGui version).
 
 Audio files can be read via the cassette interface (SDL Version). Just drop a `wav` file into the emulator. Tested with all the formats from [asciiexpress](https://asciiexpress.net/).
 
+MSYS2 support [msys2](/source/frontends/docs/msys2.md) and [mxe](/source/frontends/docs/mxe.md).
+
 ## Executables
 
 ### sa2
@@ -70,41 +72,22 @@ The joystick uses evdev (``--device-name /dev/input/by-id/id_of_device``).
 
 This is based on Qt.
 
-* keyboard shortcuts are listed in the menu entries
-* joystick: it uses QtGamepad
-* emulator runs in the main UI thread
-* Qt timers are very coarse: the emulator needs to dynamically adapt the cycles to execute
+* can use either Qt5 or Qt6 (default). If both are present, use `-DQAPPLE_USE_QT5=ON` to force Qt5.
+* keyboard shortcuts are listed in the menu entries.
+* joystick: it uses QtGamepad (not available with Qt6).
+* emulator runs in the main UI thread.
+* Qt timers are very coarse: the emulator needs to dynamically adapt the cycles to execute.
 * the app runs at 60FPS with correction for uneven timer deltas.
-* full speed when disk spins execute up to 5 ms real wall clock of emulator code (then returns to Qt)
-* audio is supported and there are a few configuration options to tune the latency (default very conservative 200ms)
-* Open Apple and Solid Apple can be emulated using AltGr and Menu (unfortunately, Alt does not work well)
-* ``yaml`` files can be dropped to restore a saved state
+* full speed when disk spins execute up to 5 ms real wall clock of emulator code (then returns to Qt).
+* audio is supported and there are a few configuration options to tune the latency (default very conservative 200ms). This is currently not working with Qt6.
+* Open Apple and Solid Apple can be emulated using AltGr and Menu (unfortunately, Alt does not work well).
+* ``yaml`` files can be dropped to restore a saved state.
 
 ### ra2
 
-There is an initial [libretro](https://docs.libretro.com/development/cores/developing-cores/) core.
+A libretro core.
 
-A retropad can be plugged in port 1 (with or without analog stick).
-
-Keyboard emulation
-
-* ``JOYPAD_R``: equivalent to ``F9`` to cycle video types
-* ``JOYPAD_L``: equivalent to ``CTRL-SHIFT-F6`` to cycle 50% scan lines
-* ``START``: equivalent to ``F2`` to reset the machine
-* ``SELECT``: press twice quickly to exit
-* ``JOYPAD_R2``: switch audio source
-* ``JOYPAD_L2``: save configuration to `/tmp/applewin.retro.conf`
-
-In order to have a better experience with the keyboard, one should probably enable *Game Focus Mode* (normally Scroll-Lock) to disable hotkeys. Even better set *Auto Enable 'Game Focus' Mode* to *Detect*.
-
-Video works, but the vertical flip is done in software.
-
-Audio: speaker and mockingboard works, but only one at a time (use ``JOYPAD_R2`` to switch).
-
-Easiest way to run from the ``build`` folder:
-``retroarch -L source/frontends/libretro/applewin_libretro.so ../bin/MASTER.DSK``
-
-It supports playlists files `.m3u` (see https://docs.libretro.com/library/vice/#m3u-and-disk-control alttough not all options are implemented).
+See [ra2](/source/frontends/libretro/README.md) for more details.
 
 ## Build
 

@@ -128,7 +128,8 @@
 	enum
 	{
 		// raised from 13 to 31 for Contiki
-		MAX_SYMBOLS_LEN = 31
+		// raised from 31 to 51 (GH#1342)
+		MAX_SYMBOLS_LEN = 51
 	};
 
 // Bookmarks ______________________________________________________________________________________
@@ -217,7 +218,7 @@
 		bool                 bTemp    ; // If true then remove BP when hit or stepping cancelled (eg. G xxxx)
 		bool                 bHit     ; // true when the breakpoint has just been hit
 		bool                 bStop    ; // true if the debugger stops when it is hit
-		DWORD                nHitCount; // number of times the breakpoint was hit
+		uint32_t             nHitCount; // number of times the breakpoint was hit
 	};
 
 	typedef Breakpoint_t Bookmark_t;
@@ -517,6 +518,9 @@
 		, CMD_VIEW_HGR3
 		, CMD_VIEW_HGR4
 		, CMD_VIEW_HGR5
+		, CMD_VIEW_HGR6
+		, CMD_VIEW_HGR7
+		, CMD_VIEW_HGR8
 		, CMD_VIEW_DHGRX
 		, CMD_VIEW_DHGR1
 		, CMD_VIEW_DHGR2
@@ -787,6 +791,9 @@
 	Update_t CmdViewOutput_HGR3    (int nArgs);
 	Update_t CmdViewOutput_HGR4    (int nArgs);
 	Update_t CmdViewOutput_HGR5    (int nArgs);
+	Update_t CmdViewOutput_HGR6    (int nArgs);
+	Update_t CmdViewOutput_HGR7    (int nArgs);
+	Update_t CmdViewOutput_HGR8    (int nArgs);
 	Update_t CmdViewOutput_DHGRX   (int nArgs);
 	Update_t CmdViewOutput_DHGR1   (int nArgs);
 	Update_t CmdViewOutput_DHGR2   (int nArgs);
@@ -1162,18 +1169,6 @@ const	DisasmData_t* pDisasmData; // If != NULL then bytes are marked up as data 
 	};
 
 // Memory _________________________________________________________________________________________
-
-	extern const          int _6502_BRANCH_POS      ;//= +127
-	extern const          int _6502_BRANCH_NEG      ;//= -128
-	extern const unsigned int _6502_ZEROPAGE_END    ;//= 0x00FF;
-	extern const unsigned int _6502_STACK_BEGIN     ;//= 0x0100;
-	extern const unsigned int _6502_STACK_END       ;//= 0x01FF;
-	extern const unsigned int _6502_IO_BEGIN        ;//= 0xC000;
-	extern const unsigned int _6502_IO_END          ;//= 0xC0FF;
-	extern const unsigned int _6502_BRK_VECTOR      ;//= 0xFFFE;
-	extern const unsigned int _6502_MEM_BEGIN       ;//= 0x0000;
-	extern const unsigned int _6502_MEM_END         ;//= 0xFFFF;
-	extern const unsigned int _6502_MEM_LEN			;//= 0x10000;
 
 	enum DEVICE_e
 	{

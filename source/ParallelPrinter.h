@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Card.h"
-#include "Memory.h"
 
 class ParallelPrinterCard : public Card
 {
@@ -56,7 +55,7 @@ private:
 	bool CheckPrint(void);
 	void ClosePrint(void);
 
-	DWORD m_inactivity;
+	uint32_t m_inactivity;
 	UINT m_printerIdleLimit;
 	FILE* m_file;
 	std::string m_szPrintFilename;

@@ -19,7 +19,7 @@ public:
 
 	static INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam);
 
-	DWORD GetVolumeMax(void){ return VOLUME_MAX; }
+	uint32_t GetVolumeMax(void){ return VOLUME_MAX; }
 
 protected:
 	// IPropertySheetPage
@@ -40,7 +40,7 @@ private:
 
 	static const UINT VOLUME_MIN = 0;
 	static const UINT VOLUME_MAX = 59;
-	static const TCHAR m_soundchoices[];
+	static const char m_soundchoices[];
 	static const char m_soundCardChoices[];
 	static const char m_soundCardChoicesEx[];
 	static const char m_soundCardChoice_Unavailable[];

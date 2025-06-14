@@ -39,13 +39,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 CPageConfig* CPageConfig::ms_this = 0;	// reinit'd in ctor
 
 enum APPLEIICHOICE {MENUITEM_IIORIGINAL, MENUITEM_IIPLUS, MENUITEM_IIJPLUS, MENUITEM_IIE, MENUITEM_ENHANCEDIIE, MENUITEM_CLONE};
-const TCHAR CPageConfig::m_ComputerChoices[] =
-				TEXT("Apple ][ (Original)\0")
-				TEXT("Apple ][+\0")
-				TEXT("Apple ][ J-Plus\0")
-				TEXT("Apple //e\0")
-				TEXT("Enhanced Apple //e\0")
-				TEXT("Clone\0");
+const char CPageConfig::m_ComputerChoices[] =
+				"Apple ][ (Original)\0"
+				"Apple ][+\0"
+				"Apple ][ J-Plus\0"
+				"Apple //e\0"
+				"Enhanced Apple //e\0"
+				"Clone\0";
 
 INT_PTR CALLBACK CPageConfig::DlgProc(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
@@ -71,7 +71,7 @@ INT_PTR CPageConfig::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPA
 			case PSN_KILLACTIVE:
 				// About to stop being active page
 				{
-					DWORD NewComputerMenuItem = (DWORD) SendDlgItemMessage(hWnd, IDC_COMPUTER, CB_GETCURSEL, 0, 0);
+					uint32_t NewComputerMenuItem = (uint32_t) SendDlgItemMessage(hWnd, IDC_COMPUTER, CB_GETCURSEL, 0, 0);
 					SetWindowLongPtr(hWnd, DWLP_MSGRESULT, FALSE);		// Changes are valid
 				}
 				break;
@@ -145,7 +145,7 @@ INT_PTR CPageConfig::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPA
 		case IDC_COMPUTER:
 			if(HIWORD(wparam) == CBN_SELCHANGE)
 			{
-				const DWORD NewComputerMenuItem = (DWORD) SendDlgItemMessage(hWnd, IDC_COMPUTER, CB_GETCURSEL, 0, 0);
+				const uint32_t NewComputerMenuItem = (uint32_t) SendDlgItemMessage(hWnd, IDC_COMPUTER, CB_GETCURSEL, 0, 0);
 				const eApple2Type NewApple2Type = GetApple2Type(NewComputerMenuItem);
 				m_PropertySheetHelper.GetConfigNew().m_Apple2Type = NewApple2Type;
 				if (NewApple2Type != A2TYPE_CLONE)
@@ -171,12 +171,12 @@ INT_PTR CPageConfig::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPA
 
 #if 0
 		case IDC_RECALIBRATE:
-			RegSaveValue(TEXT(""),TEXT("RunningOnOS"),0,0);
+			RegSaveValue("","RunningOnOS",0,0);
 			if (MessageBox(hWnd,
-				TEXT("The emulator has been set to recalibrate ")
-				TEXT("itself the next time it is started.\n\n")
-				TEXT("Would you like to restart the emulator now?"),
-				TEXT(REG_CONFIG),
+				"The emulator has been set to recalibrate "
+				"itself the next time it is started.\n\n"
+				"Would you like to restart the emulator now?",
+				REG_CONFIG,
 				MB_ICONQUESTION | MB_OKCANCEL | MB_SETFOREGROUND) == IDOK)
 			{
 					PropSheet_PressButton(GetParent(hWnd), PSBTN_OK);
@@ -245,8 +245,8 @@ INT_PTR CPageConfig::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPA
 				BOOL bCustom = TRUE;
 				if (g_dwSpeed == SPEED_NORMAL)
 				{
-					DWORD dwCustomSpeed;
-					REGLOAD_DEFAULT(TEXT(REGVALUE_CUSTOM_SPEED), &dwCustomSpeed, 0);
+					uint32_t dwCustomSpeed;
+					REGLOAD_DEFAULT(REGVALUE_CUSTOM_SPEED, &dwCustomSpeed, 0);
 					bCustom = dwCustomSpeed ? TRUE : FALSE;
 				}
 				CheckRadioButton(hWnd, IDC_AUTHENTIC_SPEED, IDC_CUSTOM_SPEED, bCustom ? IDC_CUSTOM_SPEED : IDC_AUTHENTIC_SPEED);
@@ -354,7 +354,7 @@ void CPageConfig::DlgOK(HWND hWnd)
 
 	if (win32Frame.GetFullScreenShowSubunitStatus() != bNewFSSubunitStatus)
 	{
-		REGSAVE(TEXT(REGVALUE_FS_SHOW_SUBUNIT_STATUS), bNewFSSubunitStatus ? 1 : 0);
+		REGSAVE(REGVALUE_FS_SHOW_SUBUNIT_STATUS, bNewFSSubunitStatus ? 1 : 0);
 		win32Frame.SetFullScreenShowSubunitStatus(bNewFSSubunitStatus);
 
 		if (win32Frame.IsFullScreen())
@@ -366,7 +366,7 @@ void CPageConfig::DlgOK(HWND hWnd)
 	const BOOL bNewConfirmReboot = IsDlgButtonChecked(hWnd, IDC_CHECK_CONFIRM_REBOOT) ? 1 : 0;
 	if (win32Frame.g_bConfirmReboot != bNewConfirmReboot)
 	{
-		REGSAVE(TEXT(REGVALUE_CONFIRM_REBOOT), bNewConfirmReboot);
+		REGSAVE(REGVALUE_CONFIRM_REBOOT, bNewConfirmReboot);
 		win32Frame.g_bConfirmReboot = bNewConfirmReboot;
 	}
 
@@ -374,7 +374,7 @@ void CPageConfig::DlgOK(HWND hWnd)
 
 	if (GetCardMgr().IsSSCInstalled())
 	{
-		const DWORD uNewSerialPort = (DWORD) SendDlgItemMessage(hWnd, IDC_SERIALPORT, CB_GETCURSEL, 0, 0);
+		const uint32_t uNewSerialPort = (uint32_t) SendDlgItemMessage(hWnd, IDC_SERIALPORT, CB_GETCURSEL, 0, 0);
 		GetCardMgr().GetSSC()->CommSetSerialPort(uNewSerialPort);
 	}
 
@@ -387,8 +387,8 @@ void CPageConfig::DlgOK(HWND hWnd)
 
 	SetCurrentCLK6502();
 
-	REGSAVE(TEXT(REGVALUE_CUSTOM_SPEED), IsDlgButtonChecked(hWnd, IDC_CUSTOM_SPEED));
-	REGSAVE(TEXT(REGVALUE_EMULATION_SPEED), g_dwSpeed);
+	REGSAVE(REGVALUE_CUSTOM_SPEED, IsDlgButtonChecked(hWnd, IDC_CUSTOM_SPEED));
+	REGSAVE(REGVALUE_EMULATION_SPEED, g_dwSpeed);
 
 	m_PropertySheetHelper.PostMsgAfterClose(hWnd, m_Page);
 }
@@ -406,7 +406,7 @@ void CPageConfig::InitOptions(HWND hWnd)
 }
 
 // Config->Computer: Menu item to eApple2Type
-eApple2Type CPageConfig::GetApple2Type(DWORD NewMenuItem)
+eApple2Type CPageConfig::GetApple2Type(uint32_t NewMenuItem)
 {
 	switch (NewMenuItem)
 	{
@@ -440,9 +440,9 @@ bool CPageConfig::IsOkToBenchmark(HWND hWnd, const bool bConfigChanged)
 	if (bConfigChanged)
 	{
 		if (MessageBox(hWnd,
-				TEXT("The hardware configuration has changed. Benchmarking will lose these changes.\n\n")
-				TEXT("Are you sure you want to do this?"),
-				TEXT("Benchmarks"),
+				"The hardware configuration has changed. Benchmarking will lose these changes.\n\n"
+				"Are you sure you want to do this?",
+				"Benchmarks",
 				MB_ICONQUESTION | MB_OKCANCEL | MB_SETFOREGROUND) == IDCANCEL)
 			return false;
 	}
@@ -451,11 +451,11 @@ bool CPageConfig::IsOkToBenchmark(HWND hWnd, const bool bConfigChanged)
 		return true;
 
 	if (MessageBox(hWnd,
-			TEXT("Running the benchmarks will reset the state of ")
-			TEXT("the emulated machine, causing you to lose any ")
-			TEXT("unsaved work.\n\n")
-			TEXT("Are you sure you want to do this?"),
-			TEXT("Benchmarks"),
+			"Running the benchmarks will reset the state of "
+			"the emulated machine, causing you to lose any "
+			"unsaved work.\n\n"
+			"Are you sure you want to do this?",
+			"Benchmarks",
 			MB_ICONQUESTION | MB_OKCANCEL | MB_SETFOREGROUND) == IDCANCEL)
 		return false;
 

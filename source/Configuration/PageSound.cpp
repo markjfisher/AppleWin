@@ -35,8 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 CPageSound* CPageSound::ms_this = 0;	// reinit'd in ctor
 
-const TCHAR CPageSound::m_soundchoices[] =	TEXT("Disabled\0")
-											TEXT("Sound Card\0");
+const char CPageSound::m_soundchoices[] =	"Disabled\0"
+											"Sound Card\0";
 
 
 const char CPageSound::m_soundCardChoices[] =	"Mockingboard\0"
@@ -107,7 +107,7 @@ INT_PTR CPageSound::DlgProcInternal(HWND hWnd, UINT message, WPARAM wparam, LPAR
 			if (HIWORD(wparam) == CBN_SELCHANGE)
 			{
 				UINT slot = (LOWORD(wparam) == IDC_SOUNDCARD_SLOT4) ? SLOT4 : SLOT5;
-				DWORD newChoiceItem = (DWORD)SendDlgItemMessage(hWnd, LOWORD(wparam), CB_GETCURSEL, 0, 0);
+				uint32_t newChoiceItem = (uint32_t)SendDlgItemMessage(hWnd, LOWORD(wparam), CB_GETCURSEL, 0, 0);
 
 				SS_CARDTYPE newCard = CT_Empty;
 				switch (newChoiceItem)
@@ -154,19 +154,19 @@ void CPageSound::DlgOK(HWND hWnd)
 {
 	const SoundType_e newSoundType = (SoundType_e) SendDlgItemMessage(hWnd, IDC_SOUNDTYPE, CB_GETCURSEL, 0, 0);
 
-	const DWORD dwSpkrVolume = SendDlgItemMessage(hWnd, IDC_SPKR_VOLUME, TBM_GETPOS, 0, 0);
-	const DWORD dwMBVolume = SendDlgItemMessage(hWnd, IDC_MB_VOLUME, TBM_GETPOS, 0, 0);
+	const uint32_t dwSpkrVolume = SendDlgItemMessage(hWnd, IDC_SPKR_VOLUME, TBM_GETPOS, 0, 0);
+	const uint32_t dwMBVolume = SendDlgItemMessage(hWnd, IDC_MB_VOLUME, TBM_GETPOS, 0, 0);
 
 	SpkrSetEmulationType(newSoundType);
-	DWORD dwSoundType = (soundtype == SOUND_NONE) ? REG_SOUNDTYPE_NONE : REG_SOUNDTYPE_WAVE;
-	REGSAVE(TEXT(REGVALUE_SOUND_EMULATION), dwSoundType);
+	uint32_t dwSoundType = (soundtype == SOUND_NONE) ? REG_SOUNDTYPE_NONE : REG_SOUNDTYPE_WAVE;
+	REGSAVE(REGVALUE_SOUND_EMULATION, dwSoundType);
 
 	// NB. Volume: 0=Loudest, VOLUME_MAX=Silence
 	SpkrSetVolume(dwSpkrVolume, VOLUME_MAX);
 	GetCardMgr().GetMockingboardCardMgr().SetVolume(dwMBVolume, VOLUME_MAX);
 
-	REGSAVE(TEXT(REGVALUE_SPKR_VOLUME), SpkrGetVolume());
-	REGSAVE(TEXT(REGVALUE_MB_VOLUME), GetCardMgr().GetMockingboardCardMgr().GetVolume());
+	REGSAVE(REGVALUE_SPKR_VOLUME, SpkrGetVolume());
+	REGSAVE(REGVALUE_MB_VOLUME, GetCardMgr().GetMockingboardCardMgr().GetVolume());
 
 	m_PropertySheetHelper.PostMsgAfterClose(hWnd, m_Page);
 }

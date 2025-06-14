@@ -202,7 +202,7 @@ void Disk2InterfaceCard::LoadLastDiskImage(const int drive)
 	char pathname[MAX_PATH];
 
 	std::string regSection = RegGetConfigSlotSection(m_slot);
-	if (RegLoadString(regSection.c_str(), regKey.c_str(), TRUE, pathname, MAX_PATH, TEXT("")) && (pathname[0] != 0))
+	if (RegLoadString(regSection.c_str(), regKey.c_str(), TRUE, pathname, MAX_PATH, "") && (pathname[0] != 0))
 	{
 		m_saveDiskImage = false;
 		ImageError_e error = InsertDisk(drive, pathname, IMAGE_USE_FILES_WRITE_PROTECT_STATUS, IMAGE_DONT_CREATE);
@@ -493,6 +493,17 @@ void __stdcall Disk2InterfaceCard::ControlMotor(WORD, WORD address, BYTE, BYTE, 
 {
 	BOOL newState = address & 1;
 	bool stateChanged = (newState != m_floppyMotorOn);
+
+	// "2. [...] (DRIVES OFF forces the control flip-flops to clear.)" (UTAIIe page 9-12)
+	// - so m_magnetStates = 0.
+	// "5. Causes the ENABLE1' or the ENABLE2' signal to go low depending on which drive is selected by the drive1/drive2 switch."
+	// - so m_currDrive not affected.
+	// TODO: what about m_seqFunc.function?
+	if (newState == FALSE)
+	{
+		m_magnetStates = 0;		// GH#926, GH#1315
+		ControlStepperLogging(address, g_nCumulativeCycles);
+	}
 
 	if (stateChanged)
 	{
@@ -1772,7 +1783,7 @@ void Disk2InterfaceCard::DumpTrackWOZ(FloppyDisk floppy)	// pass a copy of m_flo
 
 void Disk2InterfaceCard::Reset(const bool bIsPowerCycle)
 {
-	// RESET forces all switches off (UTAIIe Table 9.1)
+	// RESET' forces all switches off (UTAIIe Table 9.1)
 	ResetSwitches();
 
 	m_formatTrack.Reset();
@@ -1815,12 +1826,12 @@ bool Disk2InterfaceCard::UserSelectNewDiskImage(const int drive, LPCSTR pszFilen
 		return false;
 	}
 
-	TCHAR directory[MAX_PATH];
-	TCHAR filename[MAX_PATH];
+	char directory[MAX_PATH];
+	char filename[MAX_PATH];
 
 	StringCbCopy(filename, MAX_PATH, pszFilename);
 
-	RegLoadString(TEXT(REG_PREFS), TEXT(REGVALUE_PREF_START_DIR), 1, directory, MAX_PATH, TEXT(""));
+	RegLoadString(REG_PREFS, REGVALUE_PREF_START_DIR, 1, directory, MAX_PATH, "");
 	std::string title = StrFormat("Select Disk Image For Drive %d", drive + 1);
 
 	OPENFILENAME ofn;
@@ -1828,9 +1839,9 @@ bool Disk2InterfaceCard::UserSelectNewDiskImage(const int drive, LPCSTR pszFilen
 	ofn.lStructSize     = sizeof(OPENFILENAME);
 	ofn.hwndOwner       = GetFrame().g_hFrameWindow;
 	ofn.hInstance       = GetFrame().g_hInstance;
-	ofn.lpstrFilter     = TEXT("All Images\0*.bin;*.do;*.dsk;*.nib;*.po;*.gz;*.woz;*.zip;*.2mg;*.2img;*.iie;*.apl\0")
-						  TEXT("Disk Images (*.bin,*.do,*.dsk,*.nib,*.po,*.gz,*.woz,*.zip,*.2mg,*.2img,*.iie)\0*.bin;*.do;*.dsk;*.nib;*.po;*.gz;*.woz;*.zip;*.2mg;*.2img;*.iie\0")
-						  TEXT("All Files\0*.*\0");
+	ofn.lpstrFilter     = "All Images\0*.bin;*.do;*.dsk;*.nib;*.po;*.gz;*.woz;*.zip;*.2mg;*.2img;*.iie;*.apl\0"
+						  "Disk Images (*.bin,*.do,*.dsk,*.nib,*.po,*.gz,*.woz,*.zip,*.2mg,*.2img,*.iie)\0*.bin;*.do;*.dsk;*.nib;*.po;*.gz;*.woz;*.zip;*.2mg;*.2img;*.iie\0"
+						  "All Files\0*.*\0";
 	ofn.lpstrFile       = filename;
 	ofn.nMaxFile        = MAX_PATH;
 	ofn.lpstrInitialDir = directory;
@@ -1843,7 +1854,7 @@ bool Disk2InterfaceCard::UserSelectNewDiskImage(const int drive, LPCSTR pszFilen
 	{
 		std::string openFilename = filename;
 		if ((!ofn.nFileExtension) || !filename[ofn.nFileExtension])
-			openFilename += TEXT(".dsk");
+			openFilename += ".dsk";
 
 		ImageError_e Error = InsertDisk(drive, openFilename, ofn.Flags & OFN_READONLY, IMAGE_CREATE);
 		if (Error == eIMAGE_ERROR_NONE)
@@ -2206,7 +2217,8 @@ BYTE __stdcall Disk2InterfaceCard::IOWrite(WORD pc, WORD addr, BYTE bWrite, BYTE
 // 6: Added: Drive Connected & Motor On Cycle
 // 7: Deprecated SS_YAML_KEY_LSS_RESET_SEQUENCER, SS_YAML_KEY_DISK_ACCESSED
 // 8: Added: deferred stepper: event, address & cycle
-static const UINT kUNIT_VERSION = 8;
+// 9: Added: absolute path
+static const UINT kUNIT_VERSION = 9;
 
 #define SS_YAML_VALUE_CARD_DISK2 "Disk]["
 
@@ -2238,6 +2250,7 @@ static const UINT kUNIT_VERSION = 8;
 
 #define SS_YAML_KEY_FLOPPY "Floppy"
 #define SS_YAML_KEY_FILENAME "Filename"
+#define SS_YAML_KEY_ABSOLUTE_PATH "Absolute Path"
 #define SS_YAML_KEY_BYTE "Byte"
 #define SS_YAML_KEY_NIBBLES "Nibbles"
 #define SS_YAML_KEY_BIT_OFFSET "Bit Offset"
@@ -2260,6 +2273,7 @@ void Disk2InterfaceCard::SaveSnapshotFloppy(YamlSaveHelper& yamlSaveHelper, UINT
 {
 	YamlSaveHelper::Label label(yamlSaveHelper, "%s:\n", SS_YAML_KEY_FLOPPY);
 	yamlSaveHelper.SaveString(SS_YAML_KEY_FILENAME, m_floppyDrive[unit].m_disk.m_fullname);
+	yamlSaveHelper.SaveString(SS_YAML_KEY_ABSOLUTE_PATH, ImageGetPathname(m_floppyDrive[unit].m_disk.m_imagehandle));
 	yamlSaveHelper.SaveHexUint16(SS_YAML_KEY_BYTE, m_floppyDrive[unit].m_disk.m_byte);
 	yamlSaveHelper.SaveHexUint16(SS_YAML_KEY_NIBBLES, m_floppyDrive[unit].m_disk.m_nibbles);
 	yamlSaveHelper.SaveHexUint32(SS_YAML_KEY_BIT_OFFSET, m_floppyDrive[unit].m_disk.m_bitOffset);	// v4
@@ -2317,14 +2331,26 @@ void Disk2InterfaceCard::SaveSnapshot(YamlSaveHelper& yamlSaveHelper)
 
 bool Disk2InterfaceCard::LoadSnapshotFloppy(YamlLoadHelper& yamlLoadHelper, UINT unit, UINT version, std::vector<BYTE>& track)
 {
-	std::string filename = yamlLoadHelper.LoadString(SS_YAML_KEY_FILENAME);
+	const std::string simpleFilename = yamlLoadHelper.LoadString(SS_YAML_KEY_FILENAME);
+	const std::string absolutePath = version >= 9 ? yamlLoadHelper.LoadString(SS_YAML_KEY_ABSOLUTE_PATH) : "";
+
+	std::string filename = simpleFilename;
 	bool bImageError = filename.empty();
 
 	if (!bImageError)
 	{
 		DWORD dwAttributes = GetFileAttributes(filename.c_str());
+		if (dwAttributes == INVALID_FILE_ATTRIBUTES && !absolutePath.empty())
+		{
+			// try the absolute path if present
+			filename = absolutePath;
+			dwAttributes = GetFileAttributes(filename.c_str());
+		}
+
 		if (dwAttributes == INVALID_FILE_ATTRIBUTES)
 		{
+			// ignore absolute name when opening the file dialog
+			filename = simpleFilename;
 			// Get user to browse for file
 			UserSelectNewDiskImage(unit, filename.c_str());
 
